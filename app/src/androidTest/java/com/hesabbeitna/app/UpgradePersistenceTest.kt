@@ -18,7 +18,7 @@ class UpgradePersistenceTest {
         return Household(accounts = listOf(Account("update-cash", "بيانات التحديث", opening = 90000)),
             transactions = listOf(Transaction("update-tx", TxType.EXPENSE, 1234, today(), "update-cash", categoryId = "expense-0", created = 1)),
             plans = listOf(MonthlyPlan(start, 100000, 40000, 10000, 20000, 5000, start)),
-            templates = listOf(QuickTemplate("update-template", "قالب التحديث", amount = 4321, accountId = "update-cash", categoryId = "expense-0", created = 1)),
+            templates = listOf(QuickTemplate("update-template", "قالب التحديث", amount = 4321, accountId = "update-cash", categoryId = "expense-0")),
             prefs = Preferences(ready = true, salaryDay = 1, trackingStart = start, defaultAccount = "update-cash")).validate()
     }
     @Test fun seedBeforeUpdate() = runBlocking {
