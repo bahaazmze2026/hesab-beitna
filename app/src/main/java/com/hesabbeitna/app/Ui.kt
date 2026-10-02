@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,6 +56,7 @@ private val Gold = Color(0xFFD6AD55)
 @Composable fun Field(value: String, change: (String)->Unit, label: String, numeric: Boolean=false, secret: Boolean=false) {
     OutlinedTextField(value=value,onValueChange=change,label={Text(label)},modifier=Modifier.fillMaxWidth(),
         singleLine=true,keyboardOptions=KeyboardOptions(keyboardType=if(numeric) KeyboardType.Decimal else KeyboardType.Text),
+        textStyle=LocalTextStyle.current.copy(textDirection=if(numeric||label.contains("YYYY")) TextDirection.Ltr else TextDirection.Content),
         visualTransformation=if(secret) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None)
 }
 @Composable fun Choice(label: String, current: String, options: List<Pair<String,String>>, select: (String)->Unit) {
@@ -234,7 +236,7 @@ private val Gold = Color(0xFFD6AD55)
         Panel("التزامات قادمة أو متأخرة") {
             val upcoming=data.dues.filter {data.remaining(it)>0&&LocalDate.parse(it.date)<=LocalDate.now().plusDays(7)}.sortedBy {it.date}.take(3)
             if(upcoming.isEmpty()) Hint("لا توجد التزامات غير مدفوعة خلال 7 أيام")
-            upcoming.forEach {Text("${it.title} • ${it.date} • المتبقي ${money(data.remaining(it))}")}
+            upcoming.forEach {Text("${it.title} • ${displayDate(it.date)} • المتبقي ${money(data.remaining(it))}")}
             TextButton(onClick=dues) {Text("عرض الالتزامات")}
         }
         if(LocalDate.parse(data.prefs.trackingStart)>period.start) Hint("بدأ التسجيل بعد بداية هذه الدورة؛ الأرقام تغطي السجل المتاح فقط.")
@@ -305,7 +307,7 @@ private val Gold = Color(0xFFD6AD55)
             }
             if(raw.isEmpty()) Hint("لا توجد عمليات مسجلة للرسم") else {
                 BarChart(buckets.values.toList())
-                buckets.forEach { (date,amount)->Text("$date: ${money(amount)}",fontSize=13.sp) }
+                buckets.forEach { (date,amount)->Text("${displayDate(date)}: ${money(amount)}",fontSize=13.sp) }
             }
             Hint("القيم الصفرية تعني عدم وجود مصروف مسجل. الأعمدة الحمراء تعني صافي استردادات سالبًا. الأسابيع تُنسب إلى تاريخ الأحد؛ بداية ونهاية الدورة قد تحتويان أسبوعًا جزئيًا. التجميع الشهري هنا للأشهر الميلادية الواقعة في الدورة المختارة.")
         }

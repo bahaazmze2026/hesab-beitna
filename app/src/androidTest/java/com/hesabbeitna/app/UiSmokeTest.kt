@@ -30,7 +30,7 @@ class UiSmokeTest {
             compose.onNodeWithText("＋ تسجيل عملية").performClick()
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextInput("10")
             compose.onNodeWithText("حفظ").performScrollTo().performClick()
-            compose.waitUntil(15_000) { compose.onAllNodesWithText("10.00 ج.م").fetchSemanticsNodes().isNotEmpty() }
+            compose.waitUntil(15_000) { compose.onAllNodesWithText("10.00",substring=true).fetchSemanticsNodes().isNotEmpty() }
             // Disable screenshot protection only in this test process, for a synthetic-data QA image.
             scenario.onActivity { it.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE) }
             compose.waitForIdle()

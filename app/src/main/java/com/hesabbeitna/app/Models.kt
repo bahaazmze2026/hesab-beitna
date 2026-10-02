@@ -156,8 +156,9 @@ fun userError(error: Exception): String {
 }
 
 fun percent(value: Double?): String = value?.let { String.format(java.util.Locale.US, "%.1f%%", it) } ?: "غير متاح"
-fun money(value: Long) = "${Finance.format(value)} ج.م"
-fun periodLabel(period: Finance.Period) = "${period.start} إلى ${period.end.minusDays(1)}"
+fun displayDate(value: String) = "\u2066$value\u2069"
+fun money(value: Long) = "\u2066${Finance.format(value)}\u2069 ج.م"
+fun periodLabel(period: Finance.Period) = "${displayDate(period.start.toString())} إلى ${displayDate(period.end.minusDays(1).toString())}"
 
 fun recommendations(data: Household, period: Finance.Period): List<String> {
     val output = mutableListOf<String>()

@@ -47,7 +47,7 @@ jobs:
             gradle --no-daemon connectedDebugAndroidTest
             mkdir -p qa
             adb pull /sdcard/Pictures/HesabBeitnaQA/qa-dashboard.png qa/dashboard.png
-      - name: Build verified owner-signed APK
+      - name: Build release APK and provide local signing tool
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
           STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
@@ -72,7 +72,12 @@ jobs:
             mkdir -p qa
             cp app/build/outputs/apk/release/app-release.apk qa/hesab-beitna-1.0.0.apk
             sha256sum qa/hesab-beitna-1.0.0.apk > qa/hesab-beitna-1.0.0.sha256
+          else
+            gradle --no-daemon assembleRelease
+            mkdir -p qa
+            cp app/build/outputs/apk/release/app-release-unsigned.apk qa/hesab-beitna-unsigned.apk
           fi
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" qa/apksigner.jar
       - uses: actions/upload-artifact@v4
         if: success() && hashFiles('owner-signing/owner.jks') != ''
         with:

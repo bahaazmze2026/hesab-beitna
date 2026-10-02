@@ -41,12 +41,12 @@ import java.time.LocalDate
             Choice("نوع العملية",type,listOf("" to "الكل")+TxType.entries.map {it.name to typeLabel(it)}) {type=it}
         }
         if(dates==null||dates.days()<=0) ErrorText("راجع نطاق التاريخ")
-        Hint("نطاق البحث: $from إلى $to")
+        Hint("نطاق البحث: ${displayDate(from)} إلى ${displayDate(to)}")
         Hint("${list.size} عملية تطابق الاختيار")
         if(list.isEmpty()) Empty()
         var previousDate=""
         list.take(limit).forEach {t->
-            if(previousDate!=t.date) {Text(t.date,fontWeight=FontWeight.Bold);previousDate=t.date}
+            if(previousDate!=t.date) {Text(displayDate(t.date),fontWeight=FontWeight.Bold);previousDate=t.date}
             Panel {
                 Row(Modifier.fillMaxWidth()) {
                     Column(Modifier.weight(1f)) {
@@ -135,7 +135,7 @@ import java.time.LocalDate
             val paid=data.paid(d);val remaining=data.remaining(d)
             val state=when {remaining==0L->"مدفوع";LocalDate.parse(d.date)<LocalDate.now()->"متأخر";paid>0->"مدفوع جزئيًا";else->"مستحق"}
             Panel(d.title) {
-                Hint("${d.date} • ${data.category(d.categoryId)} • $state")
+                Hint("${displayDate(d.date)} • ${data.category(d.categoryId)} • $state")
                 Text("مخطط ${money(d.amount)} • مدفوع فعليًا ${money(paid)}")
                 if(remaining>0) {AmountLine("المتبقي",remaining);Button(onClick={pay(d)}) {Text("تسجيل سداد")}}
                 TextButton(onClick={planned=d}) {Text("تعديل مبلغ هذا الاستحقاق")}
