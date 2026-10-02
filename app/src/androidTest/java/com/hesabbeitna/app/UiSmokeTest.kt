@@ -70,7 +70,8 @@ class UiSmokeTest {
             waitText("أهلًا في Meow Budget");screenshot("setup",scenario)
             compose.onNodeWithText("ابدأ Meow Budget").performScrollTo().performClick()
             waitText("كل شيء أوضح");compose.onNodeWithTag("app-name").assertIsDisplayed();screenshot("home-empty",scenario)
-            compose.onNodeWithTag("expense-fab").performScrollTo().performClick()
+            compose.onNodeWithTag("expense-fab").performScrollTo().performSemanticsAction(SemanticsActions.OnClick){it()}
+            waitText("تسجيل عملية")
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextInput("0")
             compose.onNodeWithText("حفظ").performScrollTo().performClick()
             compose.onNodeWithText("المبلغ أكبر من صفر").assertExists()
@@ -133,7 +134,8 @@ class UiSmokeTest {
             scenario.recreate();waitText("مظهر التطبيق")
             compose.onNodeWithTag("glass-toggle").performScrollTo().assertIsOff().performClick().assertIsOn()
             compose.onNodeWithTag("nav-home").performClick()
-            compose.onNodeWithTag("expense-fab").performScrollTo().performClick()
+            compose.onNodeWithTag("expense-fab").performScrollTo().performSemanticsAction(SemanticsActions.OnClick){it()}
+            waitText("تسجيل عملية")
             compose.onNodeWithTag("category-picker").performScrollTo().performClick()
             compose.onNodeWithTag("category-grid").assertIsDisplayed();screenshot("icon-categories",scenario)
             compose.onNodeWithTag("category-grid").performScrollToNode(hasTestTag("new-category"))
