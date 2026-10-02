@@ -48,7 +48,7 @@ if __name__=='__main__':
     sdk=next(a for name,a in nodes if name=='uses-sdk')
     assert 'android.permission.INTERNET' not in permissions
     assert app['allowBackup'] is False and app['supportsRtl'] is True
-    assert app['label']=='حساب بيتنا'
+    assert app['label']=='Meow Budget'
     assert package['package']==(sys.argv[2] if len(sys.argv)>2 else 'com.hesabbeitna.app')
     assert sdk['minSdkVersion']==26
     result={'apk':apk.name,'sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),

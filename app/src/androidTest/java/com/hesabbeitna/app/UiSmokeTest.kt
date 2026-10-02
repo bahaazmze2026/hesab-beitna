@@ -67,10 +67,11 @@ class UiSmokeTest {
     @Test fun setupExpenseEditSearchFilterAndAnalytics() {
         runBlocking{Repository(context).save(Household())}
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
-            waitText("أهلًا في حساب بيتنا");screenshot("setup",scenario)
-            compose.onNodeWithText("ابدأ حساب بيتنا").performScrollTo().performClick()
+            waitText("أهلًا في Meow Budget");screenshot("setup",scenario)
+            compose.onNodeWithText("ابدأ Meow Budget").performScrollTo().performClick()
             waitText("كل شيء أوضح");compose.onNodeWithTag("app-name").assertIsDisplayed();screenshot("home-empty",scenario)
-            compose.onNodeWithTag("expense-fab").performScrollTo().performClick()
+            compose.onNodeWithTag("expense-fab").performScrollTo().performSemanticsAction(SemanticsActions.OnClick){it()}
+            waitText("تسجيل عملية")
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextInput("0")
             compose.onNodeWithText("حفظ").performScrollTo().performClick()
             compose.onNodeWithText("المبلغ أكبر من صفر").assertExists()
@@ -86,7 +87,8 @@ class UiSmokeTest {
             compose.onNodeWithTag("nav-transactions").performClick()
             waitText("سجل العمليات")
             compose.onNode(hasSetTextAction() and hasText("ابحث في الملاحظة أو البند أو الحساب")).performTextInput("احتياجات")
-            compose.onNodeWithText("تعديل").performScrollTo().performClick()
+            compose.onNodeWithText("تعديل").performScrollTo().performSemanticsAction(SemanticsActions.OnClick){it()}
+            waitText("تعديل العملية")
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextReplacement("70.50")
             compose.onNodeWithText("حفظ").performScrollTo().performClick()
             compose.waitUntil(30_000){financialSnapshot().transactions.single().amount==7050L}
@@ -132,7 +134,8 @@ class UiSmokeTest {
             scenario.recreate();waitText("مظهر التطبيق")
             compose.onNodeWithTag("glass-toggle").performScrollTo().assertIsOff().performClick().assertIsOn()
             compose.onNodeWithTag("nav-home").performClick()
-            compose.onNodeWithTag("expense-fab").performScrollTo().performClick()
+            compose.onNodeWithTag("expense-fab").performScrollTo().performSemanticsAction(SemanticsActions.OnClick){it()}
+            waitText("تسجيل عملية")
             compose.onNodeWithTag("category-picker").performScrollTo().performClick()
             compose.onNodeWithTag("category-grid").assertIsDisplayed();screenshot("icon-categories",scenario)
             compose.onNodeWithTag("category-grid").performScrollToNode(hasTestTag("new-category"))

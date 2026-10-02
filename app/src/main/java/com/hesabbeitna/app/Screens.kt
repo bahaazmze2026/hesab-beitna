@@ -246,8 +246,12 @@ import java.time.LocalDate
                 }
             }
             Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)){Text("المظهر الزجاجي");Hint("زجاج مطفي وإضاءة ناعمة في أدوات التنقل والاختيار")}
+                Column(Modifier.weight(1f)){Text("المظهر الزجاجي");Hint("بطاقات زجاجية ونوافذ موحدة في كل شاشات Meow Budget")}
                 Switch(checked=appearance.glass,onCheckedChange={appearance.chooseGlass(it)},modifier=Modifier.testTag("glass-toggle"))
+            }
+            Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)){Text("تقليل التأثيرات");Hint("يوقف حركة المؤشر والضغط والتمويه الثقيل، مع الحفاظ على وضوح الواجهة")}
+                Switch(checked=appearance.reduceEffects,onCheckedChange={appearance.chooseReduceEffects(it)},modifier=Modifier.testTag("reduce-effects-toggle"))
             }
         }
         Panel("إدارة البيت") {
@@ -282,7 +286,7 @@ import java.time.LocalDate
             Hint("التصدير يستخدم الدورة التي اخترتها من الرئيسية. ملف التقرير ليس بديلًا عن النسخة الاحتياطية.")
         }
         Panel("التنبيهات") {Button(onClick=notifications) {Text("تفعيل إذن تذكير الفواتير")};Hint("تذكير يومي تقريبي؛ قد تؤخره إدارة بطارية الهاتف. لا يعرض تفاصيل مالية على شاشة القفل.")}
-        Panel("عن حساب بيتنا") {Text("الإصدار 1.4.0 • هوية القطة والمحفظة");Hint("تطبيق محلي دون إذن الإنترنت. التوصيات حسابية ومفسرة، والتوقعات منفصلة عن النتائج الفعلية.")}
+        Panel("عن Meow Budget") {Text("الإصدار 1.6.0 • معاينة Liquid Glass • هوية القطة والمحفظة");Hint("تطبيق محلي دون إذن الإنترنت. التوصيات حسابية ومفسرة، والتوقعات منفصلة عن النتائج الفعلية.")}
         Spacer(Modifier.height(32.dp))
     }
     if(category) CategoriesForm(data,model,{category=false})

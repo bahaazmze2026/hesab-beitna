@@ -54,14 +54,14 @@ class AppModel(application: Application) : AndroidViewModel(application) {
             finally { _busy.value = false }
         }
     }
-    fun saveTransaction(transaction: Transaction, fee: Long = 0, feeId: String = newId(), onResult: (Boolean) -> Unit = {}) = change(onResult=onResult) {
+    fun saveTransaction(transaction: Transaction, fee: Long = 0, feeId: String = newId(), template: QuickTemplate? = null, onResult: (Boolean) -> Unit = {}) = change("Meow • تم حفظ العملية",onResult=onResult) {
         val txs = it.transactions.filterNot { old -> old.id == transaction.id } + transaction
         val withFees = if (fee > 0 && transaction.type == TxType.TRANSFER) {
             txs.filterNot { it.id == feeId } + Transaction(id = feeId, type = TxType.EXPENSE, amount = fee, date = transaction.date,
                 accountId = transaction.accountId, categoryId = "expense-8", payment = transaction.payment,
                 note = "رسوم تحويل ${transaction.id}")
         } else txs
-        it.copy(transactions = withFees)
+        it.copy(schema=2,transactions = withFees,templates=if(template==null)it.templates else it.templates.filterNot{old->old.id==template.id}+template)
     }
     fun deleteTransaction(id: String,success:String="تم حذف العملية",onResult:(Boolean)->Unit={}) = change(success,onResult) { data ->
         require(data.transactions.none { it.originalId == id }) { "احذف الاستردادات المرتبطة أولًا، أو عدل المصروف" }
@@ -142,7 +142,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
             try {
                 val app = getApplication<Application>()
                 val previous = withContext(Dispatchers.IO) {
-                    codec.decodeFromString<Household>(DeviceCipher.decrypt(File(app.filesDir,"pre-restore.vault").readBytes()).decodeToString()).validate()
+                    codec.decodeFromString<Household>(DeviceCipher.decrypt(File(app.filesDir,"pre-restore.vault").readBytes()).decodeToString()).validate().copy(schema=2)
                 }
                 val next = previous.materialize().validate()
                 repository.save(next); _data.value = next

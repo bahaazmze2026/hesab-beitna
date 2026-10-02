@@ -78,7 +78,7 @@ private fun decimalAmount(value:Long)=BigDecimal.valueOf(value,2).toPlainString(
                     report.availableDaily?.let{Text("المتاح يوميًا بعد حجز الالتزامات: ${money(it)} خلال ${report.daysLeft} يومًا بعد اليوم")}
                     if(report.availableDaily==null)Hint("حدد ميزانية للدورة ليظهر المتاح اليومي. متوسط الأيام التالية لا يشمل بقية اليوم الحالي.")
                 }
-                Panel("اسأل حساب بيتنا") {
+                Panel("اسأل Meow Budget") {
                     TextButton(onClick={tab="spending"}){Text("أكثر صنف صرفت عليه؟")}
                     TextButton(onClick={tab="comparison"}){Text("ليه الصرف اتغيّر؟")}
                     TextButton(onClick={tab="planning"}){Text("أقدر أوفّر منين؟")}
@@ -148,7 +148,7 @@ private fun decimalAmount(value:Long)=BigDecimal.valueOf(value,2).toPlainString(
 }
 @Composable private fun CategorySummary(data:Household,cat:CategoryAnalysis,click:()->Unit) {
     val appearance=LocalAppearance.current
-    Surface(onClick=click,shape=Brand.Input,color=MaterialTheme.colorScheme.surfaceVariant,modifier=Modifier.fillMaxWidth().heightIn(min=72.dp).testTag("analysis-category-${cat.id}")) {
+    LiquidClickableSurface(onClick=click,modifier=Modifier.fillMaxWidth().heightIn(min=72.dp).testTag("analysis-category-${cat.id}")) {
         Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                 ToolIcon(data.categories.firstOrNull{it.id==cat.id}?.let{appearance.icon(it)}?:"wallet")

@@ -34,10 +34,11 @@ fun userError(error: Exception): String {
 @Serializable data class Preferences(val ready: Boolean = false, val salaryDay: Int = 25,
     val trackingStart: String = today(), val defaultAccount: String? = null,
     val lock: Boolean = false, val goal: SavingGoal = SavingGoal())
-@Serializable data class Household(val schema: Int = 1, val accounts: List<Account> = emptyList(),
+@Serializable data class Household(val schema: Int = 2, val accounts: List<Account> = emptyList(),
     val categories: List<Category> = defaults(), val transactions: List<Transaction> = emptyList(),
     val budgets: List<Budget> = emptyList(), val rules: List<BillRule> = emptyList(),
-    val dues: List<Due> = emptyList(), val prefs: Preferences = Preferences()) {
+    val dues: List<Due> = emptyList(), val prefs: Preferences = Preferences(),
+    val plans: List<MonthlyPlan> = emptyList(), val templates: List<QuickTemplate> = emptyList()) {
     private val cachedEntries by lazy { transactions.map { it.entry() } }
     private val categoryNames by lazy { categories.associate { it.id to it.name } }
     private val accountNames by lazy { accounts.associate { it.id to it.name } }
@@ -59,8 +60,11 @@ fun userError(error: Exception): String {
     fun budget(period: Finance.Period, categoryId: String? = null) =
         budgets.firstOrNull { it.period == period.start.toString() && it.categoryId == categoryId }
     fun validate(): Household {
-        require(schema == 1) { "إصدار النسخة الاحتياطية غير مدعوم" }
+        require(schema in 1..2) { "إصدار النسخة الاحتياطية غير مدعوم" }
         require(accounts.size <= 200 && categories.size <= 500 && transactions.size <= 100_000 && rules.size <= 1000 && dues.size <= 50_000 && budgets.size <= 20_000) { "الملف أكبر من الحدود المدعومة" }
+        require(plans.size <= 2400 && templates.size <= 100) { "عدد الخطط أو القوالب أكبر من الحد المدعوم" }
+        require(schema == 2 || (plans.isEmpty() && templates.isEmpty()))
+        validatePlanning(this)
         require(prefs.salaryDay in 1..31)
         LocalDate.parse(prefs.trackingStart)
         require(accounts.map { it.id }.distinct().size == accounts.size)

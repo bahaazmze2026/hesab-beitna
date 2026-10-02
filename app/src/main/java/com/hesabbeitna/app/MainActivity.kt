@@ -51,6 +51,7 @@ class MainActivity : FragmentActivity() {
             val appearance=remember { Appearance(this@MainActivity) }
             val dark=resolveDark(appearance.mode,isSystemInDarkTheme())
             SideEffect {
+                window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(if(dark)android.graphics.Color.BLACK else android.graphics.Color.rgb(255,248,239)))
                 val bar=if(dark)SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
                     else SystemBarStyle.light(android.graphics.Color.TRANSPARENT,android.graphics.Color.TRANSPARENT)
                 enableEdgeToEdge(statusBarStyle=bar,navigationBarStyle=bar)
@@ -62,9 +63,9 @@ class MainActivity : FragmentActivity() {
                     canLock = { BiometricManager.from(this).canAuthenticate(authenticators()) == BiometricManager.BIOMETRIC_SUCCESS },
                     export = { kind,password,period ->
                         pendingKind=kind; pendingPassword=password; pendingPeriod=period
-                        when(kind) { "backup" -> backupExport.launch("hesab-beitna-${today()}.hbb")
-                            "csv" -> csvExport.launch("hesab-beitna-${period.start}.csv")
-                            else -> pdfExport.launch("hesab-beitna-${period.start}.pdf") }
+                        when(kind) { "backup" -> backupExport.launch("meow-budget-${today()}.hbb")
+                            "csv" -> csvExport.launch("meow-budget-${period.start}.csv")
+                            else -> pdfExport.launch("meow-budget-${period.start}.pdf") }
                     },
                     restore = { password -> pendingPassword=password; restore.launch(arrayOf("*/*")) },
                     notifications = { if(Build.VERSION.SDK_INT>=33) permission.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -80,7 +81,7 @@ class MainActivity : FragmentActivity() {
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) { authenticated.value=true }
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) { model.message("لم يتم فتح القفل: $errString") }
         })
-        prompt.authenticate(BiometricPrompt.PromptInfo.Builder().setTitle("فتح حساب بيتنا")
+        prompt.authenticate(BiometricPrompt.PromptInfo.Builder().setTitle("فتح Meow Budget")
             .setSubtitle("استخدم البصمة أو قفل الهاتف").setAllowedAuthenticators(authenticators()).build())
     }
     override fun onStop() { authenticated.value=false; super.onStop() }

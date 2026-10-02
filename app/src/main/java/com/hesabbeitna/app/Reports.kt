@@ -24,7 +24,7 @@ object Reports {
         return ("\uFEFF" + lines.joinToString("\r\n") { row -> row.joinToString(",") { cell(it) } }).encodeToByteArray()
     }
     fun pdf(data: Household, period: Finance.Period): ByteArray {
-        val lines = mutableListOf("حساب بيتنا — تقرير فعلي", periodLabel(period),
+        val lines = mutableListOf("Meow Budget — تقرير فعلي", periodLabel(period),
             "بداية المتابعة: ${data.prefs.trackingStart}", "يعكس السجلات المدخلة فقط؛ لا يثبت اكتمال التسجيل",
             "الدخل: ${money(Finance.income(data.entries(),period))}",
             "صافي المصروفات: ${money(Finance.expense(data.entries(),period))}",

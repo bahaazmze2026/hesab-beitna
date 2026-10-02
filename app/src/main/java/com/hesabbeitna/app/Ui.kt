@@ -51,6 +51,7 @@ import java.time.temporal.ChronoUnit
     var deleting by remember { mutableStateOf<Transaction?>(null) }
     var undoing by remember { mutableStateOf<Transaction?>(null) }
     var quickAdd by rememberSaveable { mutableStateOf(false) }
+    var templateId by rememberSaveable { mutableStateOf<String?>(null) }
     var initialType by rememberSaveable { mutableStateOf(TxType.EXPENSE) }
     var searchHit by remember { mutableStateOf<SearchHit?>(null) }
     var searchOrigin by rememberSaveable { mutableStateOf("home") }
@@ -60,6 +61,7 @@ import java.time.temporal.ChronoUnit
         undoing=null
     }}
     var monthOffset by rememberSaveable { mutableIntStateOf(0) }
+    LaunchedEffect(screen) { if(screen!="plan"&&monthOffset>0)monthOffset=0 }
     val snapshot = data
     val editing=snapshot?.transactions?.firstOrNull{it.id==editingId}
     val paying=snapshot?.dues?.firstOrNull{it.id==payingId}
@@ -77,7 +79,7 @@ import java.time.temporal.ChronoUnit
     }
     if(snapshot.prefs.lock&&!authenticated) {
         Surface(Modifier.fillMaxSize().safeDrawingPadding(),color=MaterialTheme.colorScheme.background) { Column(Modifier.padding(32.dp),verticalArrangement=Arrangement.Center,horizontalAlignment=Alignment.CenterHorizontally) {
-            androidx.compose.foundation.Image(painterResource(R.drawable.brand_cat),"شعار حساب بيتنا",Modifier.size(100.dp))
+            androidx.compose.foundation.Image(painterResource(R.drawable.brand_cat),"شعار Meow Budget",Modifier.size(100.dp))
             Spacer(Modifier.height(24.dp)); Text(stringResource(R.string.app_name),style=MaterialTheme.typography.headlineLarge)
             Spacer(Modifier.height(12.dp)); Text("بيانات بيتك في أمان",fontSize=25.sp,fontWeight=FontWeight.Bold)
             Spacer(Modifier.height(16.dp)); Button(onClick=unlock) {Text("فتح بالبصمة أو قفل الهاتف")}
@@ -88,30 +90,31 @@ import java.time.temporal.ChronoUnit
     val selected = Finance.anchor(java.time.YearMonth.from(base.start).plusMonths(monthOffset.toLong()),snapshot.prefs.salaryDay)
     val period = snapshot.cycle(selected)
     BackHandler(enabled=screen!="home") {screen=if(screen=="search")searchOrigin else "home"}
-    fun addTransaction(type:TxType) { editingId=null;payingId=null;initialType=type;dialog="transaction" }
+    fun addTransaction(type:TxType) { templateId=null;editingId=null;payingId=null;initialType=type;dialog="transaction" }
     fun addExpense() {addTransaction(TxType.EXPENSE)}
     fun openSearch(){if(screen!="search")searchOrigin=screen;screen="search"}
-    fun editTransaction(tx:Transaction){searchHit=null;editingId=tx.id;payingId=null;dialog=if(tx.type==TxType.REFUND)"refund"else"transaction"}
-    fun payDue(due:Due){searchHit=null;payingId=due.id;editingId=null;initialType=TxType.EXPENSE;dialog="transaction"}
+    fun editTransaction(tx:Transaction){templateId=null;searchHit=null;editingId=tx.id;payingId=null;dialog=if(tx.type==TxType.REFUND)"refund"else"transaction"}
+    fun payDue(due:Due){templateId=null;searchHit=null;payingId=due.id;editingId=null;initialType=TxType.EXPENSE;dialog="transaction"}
     Scaffold(snackbarHost={SnackbarHost(snack)},containerColor=MaterialTheme.colorScheme.background,
-        topBar={BrandHeader(if(screen in listOf("budget","dues","accounts","settings","search")) {{screen=if(screen=="search")searchOrigin else "more"}} else null,search={openSearch()})},
-        bottomBar={GlassNavigation(screen){screen=it}},
-        floatingActionButton={FloatingActionButton(onClick={quickAdd=true},modifier=Modifier.testTag("quick-add").semantics{contentDescription="إضافة عملية"},
+        topBar={BrandHeader(if(screen in listOf("budget","dues","accounts","settings","search","templates")) {{screen=if(screen=="search")searchOrigin else "more"}} else null,search={openSearch()})},
+        bottomBar={LiquidNavigation(screen){screen=it}},
+        floatingActionButton={if(screen!="more")FloatingActionButton(onClick={quickAdd=true},modifier=Modifier.testTag("quick-add").semantics{contentDescription="إضافة عملية"},
             containerColor=MaterialTheme.colorScheme.primary,contentColor=MaterialTheme.colorScheme.onPrimary,shape=Brand.Input){ToolIcon("plus",MaterialTheme.colorScheme.onPrimary);}}
     ) { padding ->
-        Column(Modifier.padding(padding).consumeWindowInsets(padding)) {
+        Column(Modifier.padding(padding).consumeWindowInsets(padding).padding(bottom=80.dp)) {
             if(busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             if(screen in listOf("home","transactions","budget","analytics","plan")) Row(Modifier.fillMaxWidth().padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically) {
                 TextButton(onClick={monthOffset--}) {Text("السابق")}
                 Column(Modifier.weight(1f),horizontalAlignment=Alignment.CenterHorizontally) {
                     Text(periodLabel(period),fontSize=12.sp); if(monthOffset!=0) TextButton(onClick={monthOffset=0}) {Text("الدورة الحالية")}
                 }
-                TextButton(onClick={monthOffset++},enabled=monthOffset<0) {Text("التالي")}
+                TextButton(onClick={monthOffset++},enabled=monthOffset<0||(screen=="plan"&&monthOffset<12)) {Text("التالي")}
             }
             screenState.SaveableStateProvider(screen){when(screen) {
                 "home" -> HomeScreen(snapshot,period,{screen="analytics"},{screen="dues"},{screen="budget"},{screen="accounts"},{addExpense()},incomeAdd={addTransaction(TxType.INCOME)},transferAdd={addTransaction(TxType.TRANSFER)})
                 "analytics" -> AnalyticsScreen(snapshot,period,model)
-                "plan" -> Column{Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly){TextButton(onClick={screen="budget"}){Text("الميزانيات")};TextButton(onClick={screen="dues"}){Text("الالتزامات")};TextButton(onClick={screen="accounts"}){Text("هدف الادخار")}};AnalyticsScreen(snapshot,period,model,"planning")}
+                "plan" -> PlanningScreen(snapshot,period,model,{payDue(it)},{screen="dues"},{screen="templates"})
+                "templates" -> TemplatesScreen(snapshot,model){template->templateId=template.id;editingId=null;payingId=null;initialType=template.type;dialog="transaction"}
                 "more" -> MoreScreen{key->when(key){
                     "more-categories"->dialog="categories";"more-backup"->dialog="backup";"more-restore"->dialog="restore"
                     "more-export"->dialog="export";else->screen=key.removePrefix("more-")
@@ -131,7 +134,7 @@ import java.time.temporal.ChronoUnit
         }
     }
     when(dialog) {
-        "transaction" -> TransactionForm(snapshot,model,editing,paying,{dialog=null},initialType)
+        "transaction" -> TransactionForm(snapshot,model,editing,paying,{dialog=null;templateId=null},initialType,snapshot.templates.firstOrNull{it.id==templateId})
         "categories" -> CategoriesForm(snapshot,model,{dialog=null})
         "export" -> AlertDialog(onDismissRequest={dialog=null},title={Text("تصدير الدورة المختارة")},
             text={Text("${periodLabel(period)}\nالملفات غير مشفرة وتحتوي بيانات مالية. اختَر مكان حفظ تثق به.")},
@@ -144,7 +147,7 @@ import java.time.temporal.ChronoUnit
     }
     deleting?.let { tx -> AlertDialog(onDismissRequest={deleting=null},title={Text("حذف العملية؟")},text={Text("${typeLabel(tx.type)} بقيمة ${money(tx.amount)}. ستُحدث الأرصدة والتحليلات.")},
         confirmButton={TextButton(onClick={model.deleteTransaction(tx.id,""){success->if(success)undoing=tx};deleting=null},enabled=!busy) {Text("حذف")}},dismissButton={TextButton(onClick={deleting=null}) {Text("إلغاء")}}) }
-    if(quickAdd)QuickAddSheet({quickAdd=false}){key->quickAdd=false;when(key){"add-income"->addTransaction(TxType.INCOME);"add-transfer"->addTransaction(TxType.TRANSFER);"add-payment"->screen="dues";else->addExpense()}}
+    if(quickAdd)QuickAddSheet({quickAdd=false}){key->quickAdd=false;when(key){"add-income"->addTransaction(TxType.INCOME);"add-transfer"->addTransaction(TxType.TRANSFER);"add-payment"->screen="dues";"add-template"->screen="templates";else->addExpense()}}
     searchHit?.let{SearchDetail(snapshot,it,{searchHit=null},{editTransaction(it)},{payDue(it)})}
     preview?.let { RestoreConfirmation(it,busy,{model.cancelRestore()},{model.confirmRestore()}) }
 }
@@ -164,8 +167,8 @@ import java.time.temporal.ChronoUnit
     var submitted by remember {mutableStateOf(false)}
     Surface(Modifier.fillMaxSize().safeDrawingPadding(),color=MaterialTheme.colorScheme.background) { Page {
         Spacer(Modifier.height(24.dp))
-        androidx.compose.foundation.Image(painterResource(R.drawable.brand_cat),"شعار حساب بيتنا",Modifier.size(120.dp))
-        Text("أهلًا في حساب بيتنا",fontSize=28.sp,fontWeight=FontWeight.Bold)
+        androidx.compose.foundation.Image(painterResource(R.drawable.brand_cat),"شعار Meow Budget",Modifier.size(120.dp))
+        Text("أهلًا في Meow Budget",fontSize=28.sp,fontWeight=FontWeight.Bold)
         Hint("ابدأ بتحديد دورة الراتب وأول حساب. بياناتك على الهاتف، دون إنترنت.")
         Field(day,{day=it},"يوم نزول الراتب (1–31)",true)
         Field(start,{start=it},"تاريخ بدء المتابعة YYYY-MM-DD")
@@ -181,7 +184,7 @@ import java.time.temporal.ChronoUnit
             val account=Account(name=name.trim(),opening=Finance.money(opening))
             submitted=true
             model.change("تم إعداد بيتك",onResult={if(!it){submitted=false;error="تعذر الحفظ. أعد المحاولة"}}) { it.copy(accounts=listOf(account),prefs=Preferences(ready=true,salaryDay=salary,trackingStart=start,defaultAccount=account.id)) }
-        }catch(e:Exception){error=userError(e)}},enabled=!submitted,modifier=Modifier.fillMaxWidth()) {Text("ابدأ حساب بيتنا")}
+        }catch(e:Exception){error=userError(e)}},enabled=!submitted,modifier=Modifier.fillMaxWidth()) {Text("ابدأ Meow Budget")}
     } }
 }
 
@@ -194,7 +197,8 @@ import java.time.temporal.ChronoUnit
     val available=budget?.let{it.amount-expense-committed}
     Page {
         ScreenTitle("كل شيء أوضح", "نظرة هادئة على أموال بيتك")
-        GlassSurface(Modifier.fillMaxWidth()) {
+        if(data.transactions.isNotEmpty()) MeowMessage("Meow • جاهز ليوم جديد", "راجع المتاح ومواعيدك قبل إضافة المصروف التالي.")
+        LiquidSurface(Modifier.fillMaxWidth().testTag("liquid-home-hero"),prominent=true) {
             Column(Modifier.fillMaxWidth().padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
                 Text(if(available!=null)"المتاح من الميزانية بعد الالتزامات"else"أرصدة حساباتك الحالية",style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
                 val headline=available?:data.accounts.sumOf{data.balance(it)}
@@ -215,9 +219,9 @@ import java.time.temporal.ChronoUnit
             }
         }
         PrimaryAction("إضافة مصروف",add,modifier=Modifier.testTag("expense-fab"))
-        ActionGrid(listOf(HubAction("home-income","إضافة دخل","wallet"),HubAction("home-transfer","تحويل","transfer"),
+        LiquidActionGrid(listOf(HubAction("home-income","إضافة دخل","wallet"),HubAction("home-transfer","تحويل","transfer"),
             HubAction("home-pay","سداد فاتورة","bill"),HubAction("home-accounts","الحسابات","wallet"))){key->when(key){"home-income"->incomeAdd();"home-transfer"->transferAdd();"home-pay"->dues();else->accounts()}}
-        Panel("ميزانية البيت") {
+        LiquidPanel("ميزانية البيت") {
             if(budget==null)Hint("حدد ميزانية لتعرف المتاح للصرف") else {
                 AmountLine("المتبقي من الميزانية",budget.amount-expense,if(budget.amount>=expense)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
                 LinearProgressIndicator(progress={if(budget.amount>0)(expense.toFloat()/budget.amount).coerceIn(0f,1f)else 0f},modifier=Modifier.fillMaxWidth())
@@ -225,7 +229,7 @@ import java.time.temporal.ChronoUnit
             }
             TextButton(onClick=budgetOpen,modifier=Modifier.testTag("open-budget")){Text("إدارة الميزانية")}
         }
-        Panel("أين تذهب الأموال؟") {
+        LiquidPanel("أين تذهب الأموال؟") {
             if(top==null||top.value<=0)Hint("أضف أول مصروف ليظهر توزيع الإنفاق") else {
                 Text(data.category(top.key),style=MaterialTheme.typography.titleMedium)
                 AmountLine("أكبر بند في هذه الفترة",top.value)
@@ -233,15 +237,15 @@ import java.time.temporal.ChronoUnit
             }
             TextButton(onClick=analytics){Text("عرض التحليلات والتوصيات")}
         }
-        QuickLink("حساباتي ومحافظي", "إجمالي الأرصدة ${money(data.accounts.sumOf{data.balance(it)})}","wallet",accounts)
-        QuickLink("الفواتير والأقساط", "راجع السداد والاستحقاقات القادمة", "calendar",dues)
-        Panel("خلال الأيام السبعة القادمة") {
+        LiquidQuickLink("حساباتي ومحافظي", "إجمالي الأرصدة ${money(data.accounts.sumOf{data.balance(it)})}","wallet",accounts)
+        LiquidQuickLink("الفواتير والأقساط", "راجع السداد والاستحقاقات القادمة", "calendar",dues)
+        LiquidPanel("خلال الأيام السبعة القادمة") {
             val upcoming=data.dues.filter{data.remaining(it)>0&&LocalDate.parse(it.date)<=LocalDate.now().plusDays(7)}.sortedBy{it.date}.take(3)
             if(upcoming.isEmpty())Hint("لا توجد التزامات غير مدفوعة خلال 7 أيام")
             upcoming.forEach{Text(it.title,style=MaterialTheme.typography.titleMedium);Hint("${displayDate(it.date)} • المتبقي ${money(data.remaining(it))}")}
             TextButton(onClick=dues){Text("عرض الالتزامات")}
         }
-        if(data.transactions.isEmpty())Empty("أول خطوة لتنظيم حسابات البيت")
+        if(data.transactions.isEmpty())LiquidPanel {MeowMessage("أول خطوة لتنظيم حسابات البيت","أضف أول عملية حقيقية من زر الإضافة")}
         if(LocalDate.parse(data.prefs.trackingStart)>period.start)Hint("بدأ التسجيل بعد بداية هذه الدورة؛ الأرقام تغطي السجل المتاح فقط.")
         Spacer(Modifier.height(80.dp))
     }

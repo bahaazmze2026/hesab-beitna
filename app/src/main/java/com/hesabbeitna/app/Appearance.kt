@@ -13,6 +13,9 @@ class Appearance(context:Context) {
         private set
     var glass by mutableStateOf(prefs.getBoolean("glass",true))
         private set
+    var reduceEffects by mutableStateOf(prefs.getBoolean("reduce-effects",false))
+        private set
+    fun chooseReduceEffects(value:Boolean){reduceEffects=value;prefs.edit().putBoolean("reduce-effects",value).apply()}
     private var revision by mutableIntStateOf(0)
     fun chooseMode(value:ThemeMode){mode=value;prefs.edit().putString("theme",value.name).apply()}
     fun chooseGlass(value:Boolean){glass=value;prefs.edit().putBoolean("glass",value).apply()}

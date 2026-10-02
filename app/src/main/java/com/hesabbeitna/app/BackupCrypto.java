@@ -39,7 +39,7 @@ public final class BackupCrypto {
     }
     public static byte[] decrypt(byte[] backup,char[] password) throws GeneralSecurityException {
         if(backup.length<48||backup.length>MAX_SIZE) throw new IllegalArgumentException("حجم ملف النسخة غير صالح");
-        if(!Arrays.equals(Arrays.copyOfRange(backup,0,4),MAGIC)) throw new IllegalArgumentException("الملف ليس نسخة حساب بيتنا");
+        if(!Arrays.equals(Arrays.copyOfRange(backup,0,4),MAGIC)) throw new IllegalArgumentException("الملف ليس نسخة Meow Budget");
         Cipher cipher=Cipher.getInstance("AES/GCM/NoPadding");
         cipher.init(Cipher.DECRYPT_MODE,derive(password,Arrays.copyOfRange(backup,4,20)),new GCMParameterSpec(128,Arrays.copyOfRange(backup,20,32)));
         cipher.updateAAD(MAGIC);
