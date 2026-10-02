@@ -101,7 +101,7 @@ import java.time.temporal.ChronoUnit
         floatingActionButton={if(screen!="more")FloatingActionButton(onClick={quickAdd=true},modifier=Modifier.testTag("quick-add").semantics{contentDescription="إضافة عملية"},
             containerColor=MaterialTheme.colorScheme.primary,contentColor=MaterialTheme.colorScheme.onPrimary,shape=Brand.Input){ToolIcon("plus",MaterialTheme.colorScheme.onPrimary);}}
     ) { padding ->
-        Column(Modifier.padding(padding).consumeWindowInsets(padding)) {
+        Column(Modifier.padding(padding).consumeWindowInsets(padding).padding(bottom=80.dp)) {
             if(busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             if(screen in listOf("home","transactions","budget","analytics","plan")) Row(Modifier.fillMaxWidth().padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically) {
                 TextButton(onClick={monthOffset--}) {Text("السابق")}
