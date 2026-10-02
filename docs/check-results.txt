@@ -1,0 +1,10 @@
+Executed in this workspace:
+PASS: 34 independent financial acceptance checks
+PASS: 13 authenticated backup acceptance checks
+PASS: 3577 date and accounting invariants
+PASS: offline project structure, XML, RTL/privacy declarations, delimiters and no signing secrets
+PASS: build workflow shell syntax
+
+NOT RUN: Kotlin compilation, Gradle unit tests, Android instrumentation, lint, APK build/signing, phone installation.
+BLOCKER: Android SDK/Gradle are absent; network downloads did not complete.
+No APK is included or claimed.
