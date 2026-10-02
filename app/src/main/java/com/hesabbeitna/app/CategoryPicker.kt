@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 
-private val categoryIcons=listOf("cart" to "مشتريات","car" to "مواصلات","bill" to "فواتير","health" to "صحة","book" to "تعليم","star" to "ترفيه","shirt" to "ملابس","home" to "بيت","wallet" to "محفظة")
+private val categoryIcons=listOf("cat" to "Meow","cart" to "مشتريات","car" to "مواصلات","bill" to "فواتير","health" to "صحة","book" to "تعليم","star" to "ترفيه","shirt" to "ملابس","home" to "بيت","wallet" to "محفظة")
 private val categoryTints=listOf("green" to "أخضر","orange" to "برتقالي","blue" to "أزرق","purple" to "بنفسجي")
 @Composable private fun categoryColor(tint:String):Color=when(tint){"orange"->MaterialTheme.colorScheme.secondary;"blue"->Color(0xFF87B6D8);"purple"->Color(0xFFBA9ACC);else->MaterialTheme.colorScheme.primary}
 

@@ -142,7 +142,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
             try {
                 val app = getApplication<Application>()
                 val previous = withContext(Dispatchers.IO) {
-                    codec.decodeFromString<Household>(DeviceCipher.decrypt(File(app.filesDir,"pre-restore.vault").readBytes()).decodeToString()).validate()
+                    codec.decodeFromString<Household>(DeviceCipher.decrypt(File(app.filesDir,"pre-restore.vault").readBytes()).decodeToString()).validate().copy(schema=2)
                 }
                 val next = previous.materialize().validate()
                 repository.save(next); _data.value = next

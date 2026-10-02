@@ -222,6 +222,7 @@ private val HouseTypography=Typography(
     }
 }
 @Composable fun ToolIcon(kind:String,color:Color=MaterialTheme.colorScheme.primary) {
+    if(kind=="cat") { Image(painterResource(R.drawable.brand_cat),null,Modifier.size(28.dp));return }
     Canvas(Modifier.size(24.dp)) {
         val s=size.width/24f
         fun line(x:Float,y:Float,xx:Float,yy:Float){drawLine(color,Offset(x*s,y*s),Offset(xx*s,yy*s),1.8f*s,StrokeCap.Round)}

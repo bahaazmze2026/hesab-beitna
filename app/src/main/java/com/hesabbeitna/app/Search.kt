@@ -28,7 +28,8 @@ fun searchHousehold(data:Household,query:String):List<SearchHit> {
         SearchHit("action","restore","استعادة البيانات","استيراد نسخة احتياطية"),
         SearchHit("action","export","التقارير والتصدير","PDF CSV"),
         SearchHit("action","analytics","التحليلات","الصرف والمقارنة"),
-        SearchHit("action","plan","خطة التوفير","محاكاة وميزانية الدورة القادمة"))
+        SearchHit("action","plan","خطة الشهر والتقويم","الدخل المتوقع والالتزامات والادخار والمواعيد"),
+        SearchHit("action","templates","القوالب السريعة","مصروفات متكررة اختصارات جاهزة Meow"))
     result+=actions.filter{matches(it.title+" "+it.detail)}
     data.accounts.filter{matches(it.name+" "+it.kind)}.take(20).forEach{result+=SearchHit("account",it.id,it.name,if(it.archived)"حساب مؤرشف"else"حساب أو محفظة")}
     data.categories.filter{matches(it.name)}.take(20).forEach{result+=SearchHit("category",it.id,it.name,if(it.income)"صنف دخل"else"صنف مصروف")}
