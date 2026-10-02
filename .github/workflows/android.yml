@@ -46,7 +46,7 @@ jobs:
           script: |
             gradle --no-daemon connectedDebugAndroidTest
             mkdir -p qa
-            adb shell run-as com.hesabbeitna.app cat files/qa-dashboard.png > qa/dashboard.png
+            adb pull /sdcard/Pictures/HesabBeitnaQA/qa-dashboard.png qa/dashboard.png
       - name: Build verified owner-signed APK
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}

@@ -1,6 +1,8 @@
 package com.hesabbeitna.app
 
 import android.view.WindowManager
+import android.content.ContentValues
+import android.provider.MediaStore
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.core.app.ActivityScenario
@@ -32,7 +34,15 @@ class UiSmokeTest {
             // Disable screenshot protection only in this test process, for a synthetic-data QA image.
             scenario.onActivity { it.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE) }
             compose.waitForIdle()
-            UiDevice.getInstance(instrumentation).takeScreenshot(File(context.filesDir,"qa-dashboard.png"))
+            val image = File(context.filesDir,"qa-dashboard.png")
+            check(UiDevice.getInstance(instrumentation).takeScreenshot(image))
+            val values = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME,"qa-dashboard.png")
+                put(MediaStore.Images.Media.MIME_TYPE,"image/png")
+                put(MediaStore.Images.Media.RELATIVE_PATH,"Pictures/HesabBeitnaQA")
+            }
+            val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values)!!
+            context.contentResolver.openOutputStream(uri)!!.use { output -> image.inputStream().use { it.copyTo(output) } }
             compose.onNodeWithText("العمليات").performClick()
             compose.waitUntil(10_000) { compose.onAllNodesWithText("الطعام").fetchSemanticsNodes().isNotEmpty() }
         }
