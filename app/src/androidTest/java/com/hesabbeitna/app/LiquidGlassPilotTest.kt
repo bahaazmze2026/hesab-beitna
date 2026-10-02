@@ -40,7 +40,9 @@ class LiquidGlassPilotTest {
         assertTrue("$text must render a light foreground in dark mode", layouts.single().layoutInput.style.color.luminance() > .45f)
     }
     private fun assertCompactFooter() {
-        tag("nav-home").assertHeightIsEqualTo(48.dp)
+        tag("nav-home").assertHeightIsAtLeast(48.dp)
+        val item = tag("nav-home").fetchSemanticsNode().boundsInRoot
+        assertTrue("Compact navigation must preserve Arabic metrics without a tall bar", item.height / context.resources.displayMetrics.density <= 56f)
         val content = tag("screen-content").fetchSemanticsNode().boundsInRoot
         val navigation = tag("nav-home").fetchSemanticsNode().boundsInRoot
         val density = context.resources.displayMetrics.density
