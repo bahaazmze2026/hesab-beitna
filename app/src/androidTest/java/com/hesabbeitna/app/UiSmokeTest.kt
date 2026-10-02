@@ -1,9 +1,13 @@
 package com.hesabbeitna.app
 
 import android.view.WindowManager
+import android.view.inspector.WindowInspector
 import android.content.ContentValues
 import android.provider.MediaStore
 import androidx.compose.ui.test.*
+import androidx.compose.ui.semantics.SemanticsActions
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -24,7 +28,7 @@ class UiSmokeTest {
     private val context get()=instrumentation.targetContext
     private fun waitText(text:String) {
         try {compose.waitUntil(30_000){compose.onAllNodesWithText(text,substring=true).fetchSemanticsNodes().isNotEmpty()}}
-        catch(error:Exception){
+        catch(error:Throwable){
             val folder=context.getExternalFilesDir(null)!!
             UiDevice.getInstance(instrumentation).dumpWindowHierarchy(File(folder,"failure-hierarchy.xml"))
             UiDevice.getInstance(instrumentation).takeScreenshot(File(folder,"failure-screen.png"))
@@ -32,7 +36,22 @@ class UiSmokeTest {
         }
     }
     private fun screenshot(name:String,scenario:ActivityScenario<MainActivity>) {
-        scenario.onActivity{it.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)}
+        val frames=CountDownLatch(1)
+        scenario.onActivity{
+            it.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            if(android.os.Build.VERSION.SDK_INT>=29)WindowInspector.getGlobalWindowViews().forEach {view->
+                val attrs=view.layoutParams as? WindowManager.LayoutParams
+                if(attrs!=null&&attrs.flags and WindowManager.LayoutParams.FLAG_SECURE!=0) {
+                    attrs.flags=attrs.flags and WindowManager.LayoutParams.FLAG_SECURE.inv()
+                    (view.context.getSystemService(android.content.Context.WINDOW_SERVICE) as WindowManager).updateViewLayout(view,attrs)
+                }
+                view.invalidate()
+            }
+            it.window.decorView.invalidate()
+            it.window.decorView.postOnAnimation {it.window.decorView.postOnAnimation{frames.countDown()}}
+        }
+        check(frames.await(3,TimeUnit.SECONDS))
+        instrumentation.waitForIdleSync()
         compose.waitForIdle()
         val file=File(context.filesDir,"qa-$name.png")
         check(UiDevice.getInstance(instrumentation).takeScreenshot(file))
@@ -84,11 +103,11 @@ class UiSmokeTest {
             compose.onNodeWithTag("nav-analytics").performClick();waitText("تحليلات واضحة")
             compose.onAllNodesWithText("70.50",substring=true).onFirst().assertExists();screenshot("analytics",scenario)
             compose.onNodeWithTag("nav-settings").performClick();waitText("الإعدادات والخصوصية");screenshot("settings",scenario)
-            compose.onNodeWithText("الحسابات وهدف الادخار").performScrollTo().performClick();waitText("حساباتي ومحافظي");screenshot("accounts",scenario)
+            compose.onNodeWithText("الحسابات وهدف الادخار").performScrollTo().performSemanticsAction(SemanticsActions.OnClick){it()};waitText("حساباتي ومحافظي");screenshot("accounts",scenario)
             UiDevice.getInstance(instrumentation).pressBack();waitText("كل شيء أوضح")
-            compose.onNodeWithTag("open-budget").performScrollTo().performClick();waitText("ميزانية الدورة");screenshot("budget",scenario)
+            compose.onNodeWithTag("open-budget").performScrollTo().performSemanticsAction(SemanticsActions.OnClick){it()};waitText("ميزانية الدورة");screenshot("budget",scenario)
             UiDevice.getInstance(instrumentation).pressBack();waitText("كل شيء أوضح")
-            compose.onNodeWithText("الفواتير والأقساط").performScrollTo().performClick();waitText("الفواتير والأقساط");screenshot("dues",scenario)
+            compose.onNodeWithText("الفواتير والأقساط").performScrollTo().performSemanticsAction(SemanticsActions.OnClick){it()};waitText("الفواتير والأقساط");screenshot("dues",scenario)
             assertEquals(-7050L,financialSnapshot().balance(financialSnapshot().accounts.single()))
         }
     }
