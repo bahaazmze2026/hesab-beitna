@@ -98,7 +98,7 @@ import java.time.temporal.ChronoUnit
     Scaffold(snackbarHost={SnackbarHost(snack)},containerColor=MaterialTheme.colorScheme.background,
         topBar={BrandHeader(if(screen in listOf("budget","dues","accounts","settings","search","templates")) {{screen=if(screen=="search")searchOrigin else "more"}} else null,search={openSearch()})},
         bottomBar={LiquidNavigation(screen){screen=it}},
-        floatingActionButton={FloatingActionButton(onClick={quickAdd=true},modifier=Modifier.testTag("quick-add").semantics{contentDescription="إضافة عملية"},
+        floatingActionButton={if(screen!="more")FloatingActionButton(onClick={quickAdd=true},modifier=Modifier.testTag("quick-add").semantics{contentDescription="إضافة عملية"},
             containerColor=MaterialTheme.colorScheme.primary,contentColor=MaterialTheme.colorScheme.onPrimary,shape=Brand.Input){ToolIcon("plus",MaterialTheme.colorScheme.onPrimary);}}
     ) { padding ->
         Column(Modifier.padding(padding).consumeWindowInsets(padding)) {
