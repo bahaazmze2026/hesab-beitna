@@ -23,7 +23,7 @@ sdk.dir=/absolute/path/to/Android/Sdk
 ./gradlew --no-daemon connectedDebugAndroidTest
 ```
 
-الأمر الثاني يحتاج محاكيًا أو هاتف اختبار متصلًا. على Windows استخدم gradlew.bat. APK التجريبي في app/build/outputs/apk/debug/app-debug.apk.
+الأمر الثاني يحتاج محاكيًا أو هاتف اختبار متصلًا. على Windows استخدم gradlew.bat. APK التجريبي في app/build/outputs/apk/debug/app-debug.apk. في الإصدار 1.1.0 يحمل معرّف com.hesabbeitna.app.preview ويُثبّت بجانب التطبيق الأصلي دون استبدال بياناته. release يحتفظ بالمعرّف الأصلي.
 
 ## توقيع التحديثات
 
@@ -72,4 +72,4 @@ java -jar /path/to/apksigner.jar verify --verbose --print-certs hesab-beitna-sig
 
 انقل APK الموقع للهاتف وافتحه، أو استخدم adb install -r مع USB debugging. تحديثات التطبيق تحتاج التوقيع نفسه وزيادة versionCode. حذف التطبيق يحذف البيانات؛ احفظ نسخة احتياطية قبل الحذف أو الانتقال من debug إلى release.
 
-اجتاز الإصدار الحالي التجميع والوحدات وlint ومحاكي Android 15 وفحص manifest والتوقيع. تجربة S25 Ultra فعليًا، الاستعادة عبر منتقي الملفات على هاتفين، وترقية تثبيت فعلي ببيانات كثيرة لم تُنفذ. التفاصيل في VERIFICATION.md.
+اجتاز الإصدار 1.1.0 التجميع والوحدات وlint وفحص manifest وتوقيع debug. تعذّر تشغيل المحاكي في هذه البيئة؛ اختبارات الواجهة المعدلة لم تُنفذ ولا توجد لقطات تشغيل للشاشات. تجربة الهاتف والاستعادة عبر منتقي الملفات وترقية تثبيت ببيانات كثيرة غير مختبرة. راجع brand-verification.md؛ تقرير VERIFICATION.md تاريخي ويخص 1.0.0.

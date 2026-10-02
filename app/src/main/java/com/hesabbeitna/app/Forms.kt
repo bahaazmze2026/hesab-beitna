@@ -4,6 +4,7 @@ package com.hesabbeitna.app
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -13,19 +14,21 @@ import java.time.LocalDate
 private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString()
 
 @Composable fun TransactionForm(data: Household, model: AppModel, editing: Transaction?, due: Due?, dismiss: ()->Unit) {
-    val id=remember {editing?.id?:newId()}
-    val feeId=remember {newId()}
-    var type by remember {mutableStateOf(editing?.type?:TxType.EXPENSE)}
-    var amount by remember {mutableStateOf(editing?.amount?.let {amountText(it)}?:due?.let {amountText(data.remaining(it))}?:"")}
-    var date by remember {mutableStateOf(editing?.date?:today())}
-    var account by remember {mutableStateOf(editing?.accountId?:data.prefs.defaultAccount?:data.accounts.first {!it.archived}.id)}
-    var destination by remember {mutableStateOf(editing?.destinationId?:data.accounts.firstOrNull {it.id!=account&&!it.archived}?.id?:"")}
-    var category by remember {mutableStateOf(editing?.categoryId?:due?.categoryId?:data.categories.first { !it.income&&!it.archived }.id)}
-    var payment by remember {mutableStateOf(editing?.payment?:data.accounts.firstOrNull {it.id==account}?.kind?:"نقد")}
-    var note by remember {mutableStateOf(editing?.note?:due?.title?:"")}
-    var fee by remember {mutableStateOf("0")}
-    var details by remember {mutableStateOf(editing!=null||due!=null)}
+    val id=rememberSaveable {editing?.id?:newId()}
+    val feeId=rememberSaveable {newId()}
+    var type by rememberSaveable {mutableStateOf(editing?.type?:TxType.EXPENSE)}
+    var amount by rememberSaveable {mutableStateOf(editing?.amount?.let {amountText(it)}?:due?.let {amountText(data.remaining(it))}?:"")}
+    var date by rememberSaveable {mutableStateOf(editing?.date?:today())}
+    var account by rememberSaveable {mutableStateOf(editing?.accountId?:data.prefs.defaultAccount?:data.accounts.first {!it.archived}.id)}
+    var destination by rememberSaveable {mutableStateOf(editing?.destinationId?:data.accounts.firstOrNull {it.id!=account&&!it.archived}?.id?:"")}
+    var category by rememberSaveable {mutableStateOf(editing?.categoryId?:due?.categoryId?:data.categories.first { !it.income&&!it.archived }.id)}
+    var payment by rememberSaveable {mutableStateOf(editing?.payment?:data.accounts.firstOrNull {it.id==account}?.kind?:"نقد")}
+    var note by rememberSaveable {mutableStateOf(editing?.note?:due?.title?:"")}
+    var fee by rememberSaveable {mutableStateOf("0")}
+    var details by rememberSaveable {mutableStateOf(editing!=null||due!=null)}
     var error by remember {mutableStateOf<String?>(null)}
+    var amountError by remember {mutableStateOf<String?>(null)}
+    var dateError by remember {mutableStateOf<String?>(null)}
     var duplicate by remember {mutableStateOf(false)}
     var pending by remember {mutableStateOf<Transaction?>(null)}
     var pendingFee by remember {mutableLongStateOf(0)}
@@ -39,7 +42,7 @@ private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString(
             type=TxType.valueOf(key)
             category=data.categories.firstOrNull {it.income==(type==TxType.INCOME)&&!it.archived}?.id?:""
         } else Hint("${typeLabel(type)}${if(due!=null) " • المتبقي ${money(data.remaining(due))}" else ""}")
-        Field(amount,{amount=it},"المبلغ — جنيه",true)
+        Field(amount,{amount=it;amountError=null},"المبلغ — جنيه",true,error=amountError)
         if(type!=TxType.TRANSFER) {
             val cats=data.categories.filter {it.income==(type==TxType.INCOME)&&(!it.archived||it.id==category)}
             if(due==null && editing?.dueId==null) Choice("التصنيف",category,cats.map {it.id to it.name}) {category=it}
@@ -57,13 +60,20 @@ private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString(
         }
         TextButton(onClick={details=!details}) {Text(if(details) "إخفاء التفاصيل" else "التاريخ وطريقة الدفع والملاحظة")}
         if(details) {
-            Field(date,{date=it},"التاريخ YYYY-MM-DD")
+            Field(date,{date=it;dateError=null},"التاريخ YYYY-MM-DD",error=dateError)
             Choice("طريقة الدفع",payment,listOf("نقد","حساب بنكي","محفظة","بطاقة","أخرى").map {it to it}) {payment=it}
             Field(note,{note=it.take(500)},"ملاحظة اختيارية")
         } else Hint("التاريخ $date • $payment")
         ErrorText(error)
         Button(onClick={try {
-            val value=Finance.money(amount);require(value>0) {"المبلغ أكبر من صفر"}
+            error=null
+            val value=runCatching{Finance.money(amount)}.getOrNull()
+            amountError=if(value==null)"أدخل مبلغًا صالحًا، بحد أقصى خانتين عشريتين"else if(value<=0)"المبلغ أكبر من صفر"else null
+            val parsedDate=runCatching{LocalDate.parse(date)}.getOrNull()
+            dateError=when {parsedDate==null->"اكتب التاريخ بصيغة YYYY-MM-DD";parsedDate<LocalDate.parse(data.prefs.trackingStart)->"التاريخ يسبق بدء المتابعة";parsedDate>LocalDate.now()->"العملية الفعلية لا تكون في المستقبل";else->null}
+            if(dateError!=null)details=true
+            if(amountError!=null||dateError!=null)return@Button
+            requireNotNull(value)
             val tx=Transaction(id=id,type=type,amount=value,date=date,accountId=account,
                 destinationId=if(type==TxType.TRANSFER) destination else null,
                 categoryId=if(type==TxType.TRANSFER)null else category,payment=payment,note=note.trim(),
@@ -73,7 +83,7 @@ private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString(
             val similar=data.transactions.any {it.id!=id&&it.type==tx.type&&it.amount==tx.amount&&it.date==tx.date&&it.accountId==tx.accountId&&it.categoryId==tx.categoryId&&it.destinationId==tx.destinationId}
             if(similar&&editing==null) {pending=tx;pendingFee=feeAmount;duplicate=true}
             else submit(tx,feeAmount)
-        }catch(e:Exception){error=userError(e)}},enabled=!submitted,modifier=Modifier.fillMaxWidth()) {Text("حفظ")}
+        }catch(e:Exception){error=userError(e)}},enabled=!submitted,modifier=Modifier.fillMaxWidth()) {Text(if(submitted)"جارٍ الحفظ…"else"حفظ")}
     }
     if(duplicate) AlertDialog(onDismissRequest={duplicate=false},title={Text("عملية مشابهة موجودة")},
         text={Text("هناك عملية بنفس النوع والمبلغ والتاريخ والحساب. هل هذه عملية أخرى مقصودة؟")},
@@ -84,11 +94,11 @@ private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString(
     val editing=original.type==TxType.REFUND
     val source=if(editing)data.transactions.first {it.id==original.originalId}else original
     val available=source.amount-data.transactions.filter {it.originalId==source.id&&it.id!=original.id}.sumOf {it.amount}
-    val id=remember {if(editing)original.id else newId()}
-    var amount by remember {mutableStateOf(amountText(if(editing)original.amount else available))}
-    var account by remember {mutableStateOf(original.accountId)}
-    var date by remember {mutableStateOf(if(editing)original.date else today())}
-    var note by remember {mutableStateOf(if(editing)original.note else "استرداد ${data.category(source.categoryId)}")}
+    val id=rememberSaveable {if(editing)original.id else newId()}
+    var amount by rememberSaveable {mutableStateOf(amountText(if(editing)original.amount else available))}
+    var account by rememberSaveable {mutableStateOf(original.accountId)}
+    var date by rememberSaveable {mutableStateOf(if(editing)original.date else today())}
+    var note by rememberSaveable {mutableStateOf(if(editing)original.note else "استرداد ${data.category(source.categoryId)}")}
     var error by remember {mutableStateOf<String?>(null)}
     var submitted by remember {mutableStateOf(false)}
     DialogForm("استرداد مصروف",dismiss) {
@@ -109,10 +119,10 @@ private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString(
 }
 
 @Composable fun AccountForm(data: Household,model: AppModel,dismiss: ()->Unit,editing: Account?=null) {
-    val id=remember {editing?.id?:newId()}
-    var name by remember {mutableStateOf(editing?.name?:"")}
-    var kind by remember {mutableStateOf(editing?.kind?:"نقد")}
-    var opening by remember {mutableStateOf(amountText(editing?.opening?:0))}
+    val id=rememberSaveable {editing?.id?:newId()}
+    var name by rememberSaveable {mutableStateOf(editing?.name?:"")}
+    var kind by rememberSaveable {mutableStateOf(editing?.kind?:"نقد")}
+    var opening by rememberSaveable {mutableStateOf(amountText(editing?.opening?:0))}
     var error by remember {mutableStateOf<String?>(null)}
     var submitted by remember {mutableStateOf(false)}
     DialogForm(if(editing==null)"حساب جديد"else"تعديل الحساب",dismiss) {
@@ -131,13 +141,13 @@ private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString(
 }
 
 @Composable fun BillForm(data: Household,model: AppModel,dismiss: ()->Unit,editing: BillRule?=null) {
-    val id=remember {editing?.id?:newId()}
-    var title by remember {mutableStateOf(editing?.title?:"")}
-    var amount by remember {mutableStateOf(editing?.amount?.let {amountText(it)}?:"")}
-    var date by remember {mutableStateOf(editing?.start?:today())}
-    var end by remember {mutableStateOf(editing?.end?:"")}
-    var every by remember {mutableStateOf(editing?.intervalMonths?.toString()?:"1")}
-    var category by remember {mutableStateOf(editing?.categoryId?:data.categories.first {!it.income&&!it.archived}.id)}
+    val id=rememberSaveable {editing?.id?:newId()}
+    var title by rememberSaveable {mutableStateOf(editing?.title?:"")}
+    var amount by rememberSaveable {mutableStateOf(editing?.amount?.let {amountText(it)}?:"")}
+    var date by rememberSaveable {mutableStateOf(editing?.start?:today())}
+    var end by rememberSaveable {mutableStateOf(editing?.end?:"")}
+    var every by rememberSaveable {mutableStateOf(editing?.intervalMonths?.toString()?:"1")}
+    var category by rememberSaveable {mutableStateOf(editing?.categoryId?:data.categories.first {!it.income&&!it.archived}.id)}
     var error by remember {mutableStateOf<String?>(null)}
     var submitted by remember {mutableStateOf(false)}
     DialogForm(if(editing==null)"فاتورة أو قسط متكرر"else"تعديل التكرار المستقبلي",dismiss) {

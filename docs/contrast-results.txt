@@ -1,0 +1,21 @@
+light text: #482623 on #FFF8EF = 12.63:1 PASS
+light card text: #482623 on #FFFDFA = 13.11:1 PASS
+light secondary text: #745951 on #FFFDFA = 6.29:1 PASS
+light secondary on hero: #745951 on #E1EFE4 = 5.37:1 PASS
+primary button: #FFFFFF on #26734D = 5.77:1 PASS
+orange control: #482623 on #EE9451 = 5.70:1 PASS
+green number: #26734D on #FFFDFA = 5.68:1 PASS
+selected navigation: #26734D on #E1EFE4 = 4.85:1 PASS
+hero number: #184A32 on #E1EFE4 = 8.56:1 PASS
+light error: #AD3038 on #FFFDFA = 6.35:1 PASS
+light alert: #7B1823 on #FFE8E8 = 8.99:1 PASS
+warning: #815000 on #FFF8EF = 6.47:1 PASS
+dark text: #FFF8EF on #2E2520 = 14.22:1 PASS
+dark secondary: #D6BFB1 on #2E2520 = 8.52:1 PASS
+dark primary button: #103820 on #97D5AB = 7.72:1 PASS
+dark number: #97D5AB on #2E2520 = 8.86:1 PASS
+dark selected navigation: #97D5AB on #254733 = 6.13:1 PASS
+dark hero: #D8F3E0 on #254733 = 8.79:1 PASS
+dark error: #FFB3B8 on #2E2520 = 8.84:1 PASS
+dark alert: #FFDADC on #502129 = 10.26:1 PASS
+glass label after compositing: 6.29:1 PASS

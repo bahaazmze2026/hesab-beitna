@@ -12,11 +12,15 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -28,62 +32,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
-private val Green = Color(0xFF14675B)
-private val Gold = Color(0xFFD6AD55)
-@Composable fun HouseTheme(content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        MaterialTheme(colorScheme=lightColorScheme(primary=Green,secondary=Gold,
-            background=Color(0xFFF5F7F3),surface=Color.White,onSurface=Color(0xFF193731),error=Color(0xFFAF3D3D)),content=content)
-    }
-}
-@Composable fun Page(content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
-        verticalArrangement=Arrangement.spacedBy(14.dp),content=content)
-}
-@Composable fun Panel(title: String? = null, content: @Composable ColumnScope.() -> Unit) {
-    Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
-            if(title!=null) Text(title,fontWeight=FontWeight.Bold,fontSize=18.sp)
-            content()
-        }
-    }
-}
-@Composable fun Hint(text: String) { Text(text,fontSize=13.sp,color=MaterialTheme.colorScheme.onSurfaceVariant,lineHeight=21.sp) }
-@Composable fun AmountLine(label: String, amount: Long, color: Color = Green) {
-    Column { Hint(label); Text(money(amount),fontSize=23.sp,fontWeight=FontWeight.Bold,color=color) }
-}
-@Composable fun Empty(text: String = "لا توجد عمليات مسجلة في هذه الفترة") { Panel { Text(text); Hint("ابدأ ببياناتك الحقيقية؛ التطبيق لا يضيف بيانات تجريبية") } }
-@Composable fun Field(value: String, change: (String)->Unit, label: String, numeric: Boolean=false, secret: Boolean=false) {
-    OutlinedTextField(value=value,onValueChange=change,label={Text(label)},modifier=Modifier.fillMaxWidth(),
-        singleLine=true,keyboardOptions=KeyboardOptions(keyboardType=if(numeric) KeyboardType.Decimal else KeyboardType.Text),
-        textStyle=LocalTextStyle.current.copy(textDirection=if(numeric||label.contains("YYYY")) TextDirection.Ltr else TextDirection.Content),
-        visualTransformation=if(secret) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None)
-}
-@Composable fun Choice(label: String, current: String, options: List<Pair<String,String>>, select: (String)->Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        OutlinedButton(onClick={expanded=true},modifier=Modifier.fillMaxWidth()) {
-            Text("$label: ${options.firstOrNull { it.first==current }?.second ?: "اختر"}",modifier=Modifier.weight(1f)); Text("⌄")
-        }
-        DropdownMenu(expanded=expanded,onDismissRequest={expanded=false}) {
-            options.forEach { option -> DropdownMenuItem(text={Text(option.second)},onClick={select(option.first);expanded=false}) }
-        }
-    }
-}
-@Composable fun DialogForm(title: String, dismiss: ()->Unit, content: @Composable ColumnScope.()->Unit) {
-    androidx.compose.ui.window.Dialog(onDismissRequest=dismiss) {
-        Surface(shape=RoundedCornerShape(24.dp),color=MaterialTheme.colorScheme.surface) {
-            Column(Modifier.fillMaxWidth().heightIn(max=650.dp).verticalScroll(rememberScrollState()).padding(20.dp),
-                verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                Text(title,fontSize=21.sp,fontWeight=FontWeight.Bold)
-                content()
-                TextButton(onClick=dismiss,modifier=Modifier.align(Alignment.End)) { Text("إغلاق") }
-            }
-        }
-    }
-}
-@Composable fun ErrorText(error: String?) { if(error!=null) Text(error,color=MaterialTheme.colorScheme.error,fontSize=13.sp) }
-
 @Composable fun HouseRoot(model: AppModel, authenticated: Boolean, unlock: ()->Unit,
     canLock: ()->Boolean, export: (String,String,Finance.Period)->Unit, restore: (String)->Unit, notifications: ()->Unit) {
     val data by model.data.collectAsStateWithLifecycle()
@@ -93,16 +41,19 @@ private val Gold = Color(0xFFD6AD55)
     val preview by model.restorePreview.collectAsStateWithLifecycle()
     val snack = remember { SnackbarHostState() }
     LaunchedEffect(message) { message?.let { snack.showSnackbar(it); model.clearMessage() } }
-    var screen by remember { mutableStateOf("home") }
-    var dialog by remember { mutableStateOf<String?>(null) }
-    var editing by remember { mutableStateOf<Transaction?>(null) }
-    var paying by remember { mutableStateOf<Due?>(null) }
+    var screen by rememberSaveable { mutableStateOf("home") }
+    var dialog by rememberSaveable { mutableStateOf<String?>(null) }
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var payingId by rememberSaveable { mutableStateOf<String?>(null) }
     var deleting by remember { mutableStateOf<Transaction?>(null) }
-    var monthOffset by remember { mutableIntStateOf(0) }
+    var monthOffset by rememberSaveable { mutableIntStateOf(0) }
     val snapshot = data
+    val editing=snapshot?.transactions?.firstOrNull{it.id==editingId}
+    val paying=snapshot?.dues?.firstOrNull{it.id==payingId}
     if(snapshot==null) {
-        Surface(Modifier.fillMaxSize()) { Page {
-            Text("حساب بيتنا",fontSize=28.sp,fontWeight=FontWeight.Bold)
+        Surface(Modifier.fillMaxSize().safeDrawingPadding(),color=MaterialTheme.colorScheme.background) { Page {
+            Mascot(96.dp)
+            Text(stringResource(R.string.app_name),style=MaterialTheme.typography.headlineLarge)
             if(loadFailure==null) { CircularProgressIndicator(); Text("فتح بياناتك المحلية…") }
             else { ErrorText(loadFailure); Button(onClick={model.reload()}) {Text("إعادة المحاولة")}
                 OutlinedButton(onClick={dialog="restore"}) {Text("استعادة نسخة احتياطية")}
@@ -112,9 +63,10 @@ private val Gold = Color(0xFFD6AD55)
         return
     }
     if(snapshot.prefs.lock&&!authenticated) {
-        Surface(Modifier.fillMaxSize()) { Column(Modifier.padding(32.dp),verticalArrangement=Arrangement.Center,horizontalAlignment=Alignment.CenterHorizontally) {
-            androidx.compose.foundation.Image(painterResource(R.drawable.logo),"شعار حساب بيتنا",Modifier.size(100.dp))
-            Spacer(Modifier.height(24.dp)); Text("بيانات بيتك في أمان",fontSize=25.sp,fontWeight=FontWeight.Bold)
+        Surface(Modifier.fillMaxSize().safeDrawingPadding(),color=MaterialTheme.colorScheme.background) { Column(Modifier.padding(32.dp),verticalArrangement=Arrangement.Center,horizontalAlignment=Alignment.CenterHorizontally) {
+            androidx.compose.foundation.Image(painterResource(R.drawable.brand_cat),"شعار حساب بيتنا",Modifier.size(100.dp))
+            Spacer(Modifier.height(24.dp)); Text(stringResource(R.string.app_name),style=MaterialTheme.typography.headlineLarge)
+            Spacer(Modifier.height(12.dp)); Text("بيانات بيتك في أمان",fontSize=25.sp,fontWeight=FontWeight.Bold)
             Spacer(Modifier.height(16.dp)); Button(onClick=unlock) {Text("فتح بالبصمة أو قفل الهاتف")}
         } }; return
     }
@@ -123,18 +75,15 @@ private val Gold = Color(0xFFD6AD55)
     val selected = Finance.anchor(java.time.YearMonth.from(base.start).plusMonths(monthOffset.toLong()),snapshot.prefs.salaryDay)
     val period = snapshot.cycle(selected)
     BackHandler(enabled=screen!="home") {screen="home"}
-    Scaffold(snackbarHost={SnackbarHost(snack)},
-        topBar={TopAppBar(title={Column {Text("حساب بيتنا",fontWeight=FontWeight.Bold); Text("بيتك، وحسابك واضح",fontSize=12.sp)}},
-            navigationIcon={androidx.compose.foundation.Image(painterResource(R.drawable.logo),"اللوجو",Modifier.padding(10.dp).size(36.dp))},
-            actions={TextButton(onClick={screen="settings"}) {Text("الإعدادات")}})},
-        bottomBar={NavigationBar {
-            listOf(Triple("home","الرئيسية","⌂"),Triple("transactions","العمليات","≡"),Triple("budget","الميزانية","▤"),Triple("dues","الالتزامات","◷"),Triple("accounts","حساباتي","◫")).forEach { (key,label,symbol)->
-                NavigationBarItem(selected=screen==key,onClick={screen=key},icon={Text(symbol,fontSize=24.sp)},label={Text(label,fontSize=11.sp)})
-            }
-        }},
-        floatingActionButton={if(screen!="settings") ExtendedFloatingActionButton(onClick={editing=null;paying=null;dialog="transaction"},containerColor=Green,contentColor=Color.White) {Text("＋ تسجيل عملية")}}
+    fun addExpense() { editingId=null;payingId=null;dialog="transaction" }
+    Scaffold(snackbarHost={SnackbarHost(snack)},containerColor=MaterialTheme.colorScheme.background,
+        topBar={BrandHeader(if(screen in listOf("budget","dues","accounts")) {{screen="home"}} else null)},
+        bottomBar={GlassNavigation(screen){screen=it}},
+        floatingActionButton={if(screen!="settings"&&screen!="home") ExtendedFloatingActionButton(onClick={addExpense()},
+            modifier=Modifier.testTag("expense-fab"),containerColor=MaterialTheme.colorScheme.primary,contentColor=MaterialTheme.colorScheme.onPrimary,
+            shape=Brand.Card,icon={ToolIcon("plus",MaterialTheme.colorScheme.onPrimary)},text={Text("إضافة مصروف")})}
     ) { padding ->
-        Column(Modifier.padding(padding)) {
+        Column(Modifier.padding(padding).consumeWindowInsets(padding)) {
             if(busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             if(screen in listOf("home","transactions","budget","analytics")) Row(Modifier.fillMaxWidth().padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically) {
                 TextButton(onClick={monthOffset--}) {Text("السابق")}
@@ -144,15 +93,15 @@ private val Gold = Color(0xFFD6AD55)
                 TextButton(onClick={monthOffset++},enabled=monthOffset<0) {Text("التالي")}
             }
             when(screen) {
-                "home" -> HomeScreen(snapshot,period,{screen="analytics"},{screen="dues"})
+                "home" -> HomeScreen(snapshot,period,{screen="analytics"},{screen="dues"},{screen="budget"},{screen="accounts"},{addExpense()})
                 "analytics" -> AnalyticsScreen(snapshot,period)
                 "transactions" -> TransactionsScreen(snapshot,period,
-                    edit={editing=it;paying=null;dialog=if(it.type==TxType.REFUND)"refund"else"transaction"},delete={deleting=it},refund={editing=it;dialog="refund"})
+                    edit={editingId=it.id;payingId=null;dialog=if(it.type==TxType.REFUND)"refund"else"transaction"},delete={deleting=it},refund={editingId=it.id;dialog="refund"})
                 "budget" -> BudgetScreen(snapshot,period,model)
-                "dues" -> DuesScreen(snapshot,model,{paying=it;editing=null;dialog="transaction"})
+                "dues" -> DuesScreen(snapshot,model,{payingId=it.id;editingId=null;dialog="transaction"})
                 "accounts" -> AccountsScreen(snapshot,model,{dialog="account"})
                 "settings" -> SettingsScreen(snapshot,model,canLock,notifications,
-                    backup={dialog="backup"},restore={dialog="restore"},csv={export("csv","",period)},pdf={export("pdf","",period)})
+                    accounts={screen="accounts"},budget={screen="budget"},dues={screen="dues"},backup={dialog="backup"},restore={dialog="restore"},csv={export("csv","",period)},pdf={export("pdf","",period)})
             }
             Spacer(Modifier.height(4.dp))
         }
@@ -176,15 +125,15 @@ private val Gold = Color(0xFFD6AD55)
 }
 
 @Composable fun SetupScreen(model: AppModel) {
-    var day by remember {mutableStateOf("25")}
-    var start by remember {mutableStateOf(today())}
-    var name by remember {mutableStateOf("النقد")}
-    var opening by remember {mutableStateOf("0")}
+    var day by rememberSaveable {mutableStateOf("25")}
+    var start by rememberSaveable {mutableStateOf(today())}
+    var name by rememberSaveable {mutableStateOf("النقد")}
+    var opening by rememberSaveable {mutableStateOf("0")}
     var error by remember {mutableStateOf<String?>(null)}
     var submitted by remember {mutableStateOf(false)}
-    Surface(Modifier.fillMaxSize()) { Page {
+    Surface(Modifier.fillMaxSize().safeDrawingPadding(),color=MaterialTheme.colorScheme.background) { Page {
         Spacer(Modifier.height(24.dp))
-        androidx.compose.foundation.Image(painterResource(R.drawable.logo),"شعار حساب بيتنا",Modifier.size(80.dp))
+        androidx.compose.foundation.Image(painterResource(R.drawable.brand_cat),"شعار حساب بيتنا",Modifier.size(120.dp))
         Text("أهلًا في حساب بيتنا",fontSize=28.sp,fontWeight=FontWeight.Bold)
         Hint("ابدأ بتحديد دورة الراتب وأول حساب. بياناتك على الهاتف، دون إنترنت.")
         Field(day,{day=it},"يوم نزول الراتب (1–31)",true)
@@ -205,43 +154,65 @@ private val Gold = Color(0xFFD6AD55)
     } }
 }
 
-@Composable fun HomeScreen(data: Household,period: Finance.Period,analytics: ()->Unit,dues: ()->Unit) {
+@Composable fun HomeScreen(data:Household,period:Finance.Period,analytics:()->Unit,dues:()->Unit,budgetOpen:()->Unit,accounts:()->Unit,add:()->Unit) {
     val entries=remember(data.transactions){data.entries()}
-    val income=Finance.income(entries,period); val expense=Finance.expense(entries,period)
+    val income=Finance.income(entries,period);val expense=Finance.expense(entries,period)
     val budget=data.budget(period)
-    val categories=Finance.categories(entries,period)
-    val top=categories.maxByOrNull {it.value}
-    val count=Finance.counts(entries,period).maxByOrNull {it.value}
+    val top=Finance.categories(entries,period).maxByOrNull{it.value}
     Page {
-        Panel("ملخص الدورة") {
-            AmountLine("الدخل الفعلي",income)
-            AmountLine("صافي المصروفات",expense)
-            HorizontalDivider(); AmountLine("المتبقي من دخل الدورة",income-expense,if(income>=expense) Green else MaterialTheme.colorScheme.error)
-            Hint("المتبقي هنا لا يساوي رصيد الحسابات؛ الأرصدة الافتتاحية والتحويلات لا تدخل هذه الأرقام.")
-        }
-        Panel("ميزانية البيت") {
-            if(budget==null) Hint("لم تُحدد ميزانية لهذه الدورة") else {
-                AmountLine("المتبقي من الميزانية",budget.amount-expense)
-                LinearProgressIndicator(progress={if(budget.amount>0)(expense.toFloat()/budget.amount).coerceIn(0f,1f) else 0f},modifier=Modifier.fillMaxWidth())
-                Hint("المحدد ${money(budget.amount)} • المستخدم ${percent(Finance.percent(expense,budget.amount))}")
+        ScreenTitle("كل شيء أوضح", "نظرة هادئة على أموال بيتك")
+        Surface(shape=Brand.Card,color=MaterialTheme.colorScheme.surface,
+            border=androidx.compose.foundation.BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant)) {
+            Column(Modifier.fillMaxWidth().padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+                Text("المتبقي من دخل الدورة",style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(money(income-expense),style=MaterialTheme.typography.displaySmall,color=if(income>=expense)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                HorizontalDivider(color=MaterialTheme.colorScheme.primary.copy(alpha=.2f))
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    val largeText=LocalDensity.current.fontScale>1.3f
+                    if(maxWidth<320.dp||largeText) Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
+                        CycleMetric("الدخل الفعلي",income);CycleMetric("صافي المصروفات",expense)
+                    } else Row(horizontalArrangement=Arrangement.spacedBy(16.dp)) {
+                        Column(Modifier.weight(1f)){CycleMetric("الدخل الفعلي",income)}
+                        Column(Modifier.weight(1f)){CycleMetric("صافي المصروفات",expense)}
+                    }
+                }
+                Hint("هذا المتبقي يخص الدورة فقط، ولا يساوي أرصدة الحسابات.")
             }
         }
+        PrimaryAction("إضافة مصروف",add,modifier=Modifier.testTag("expense-fab"))
+        Panel("ميزانية البيت") {
+            if(budget==null)Hint("حدد ميزانية لتعرف المتاح للصرف") else {
+                AmountLine("المتبقي من الميزانية",budget.amount-expense,if(budget.amount>=expense)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                LinearProgressIndicator(progress={if(budget.amount>0)(expense.toFloat()/budget.amount).coerceIn(0f,1f)else 0f},modifier=Modifier.fillMaxWidth())
+                Hint("المحدد ${money(budget.amount)} • المستخدم ${percent(Finance.percent(expense,budget.amount))}")
+            }
+            TextButton(onClick=budgetOpen){Text("إدارة الميزانية")}
+        }
         Panel("أين تذهب الأموال؟") {
-            if(top==null||top.value<=0) Hint("لا توجد مصروفات كافية لترتيب البنود") else Text("الأكبر بالمبلغ: ${data.category(top.key)} — ${money(top.value)} (${percent(Finance.percent(top.value,expense))})")
-            count?.let {Text("الأكثر تكرارًا: ${data.category(it.key)} — ${it.value} عملية")}
-            Hint("كثرة العمليات تختلف عن كبر المبلغ؛ الاستردادات لا تزيد عدد عمليات المصروف.")
-            OutlinedButton(onClick=analytics,modifier=Modifier.fillMaxWidth()) {Text("التحليلات والتوقع والتوصيات")}
+            if(top==null||top.value<=0)Hint("أضف أول مصروف ليظهر توزيع الإنفاق") else {
+                Text(data.category(top.key),style=MaterialTheme.typography.titleMedium)
+                AmountLine("أكبر بند في هذه الفترة",top.value)
+                Hint("يمثل ${percent(Finance.percent(top.value,expense))} من صافي المصروفات")
+            }
+            TextButton(onClick=analytics){Text("عرض التحليلات والتوصيات")}
         }
-        Panel("أرصدة الحسابات الآن") { AmountLine("إجمالي الأرصدة",data.accounts.sumOf {data.balance(it)}); Hint("يشمل الأرصدة السابقة وكل الحركات حتى الآن، وليس الفترة المختارة وحدها") }
-        Panel("التزامات قادمة أو متأخرة") {
-            val upcoming=data.dues.filter {data.remaining(it)>0&&LocalDate.parse(it.date)<=LocalDate.now().plusDays(7)}.sortedBy {it.date}.take(3)
-            if(upcoming.isEmpty()) Hint("لا توجد التزامات غير مدفوعة خلال 7 أيام")
-            upcoming.forEach {Text("${it.title} • ${displayDate(it.date)} • المتبقي ${money(data.remaining(it))}")}
-            TextButton(onClick=dues) {Text("عرض الالتزامات")}
+        QuickLink("حساباتي ومحافظي", "إجمالي الأرصدة ${money(data.accounts.sumOf{data.balance(it)})}","wallet",accounts)
+        QuickLink("الفواتير والأقساط", "راجع السداد والاستحقاقات القادمة", "calendar",dues)
+        Panel("خلال الأيام السبعة القادمة") {
+            val upcoming=data.dues.filter{data.remaining(it)>0&&LocalDate.parse(it.date)<=LocalDate.now().plusDays(7)}.sortedBy{it.date}.take(3)
+            if(upcoming.isEmpty())Hint("لا توجد التزامات غير مدفوعة خلال 7 أيام")
+            upcoming.forEach{Text(it.title,style=MaterialTheme.typography.titleMedium);Hint("${displayDate(it.date)} • المتبقي ${money(data.remaining(it))}")}
+            TextButton(onClick=dues){Text("عرض الالتزامات")}
         }
-        if(LocalDate.parse(data.prefs.trackingStart)>period.start) Hint("بدأ التسجيل بعد بداية هذه الدورة؛ الأرقام تغطي السجل المتاح فقط.")
+        if(data.transactions.isEmpty())Empty("أول خطوة لتنظيم حسابات البيت")
+        if(LocalDate.parse(data.prefs.trackingStart)>period.start)Hint("بدأ التسجيل بعد بداية هذه الدورة؛ الأرقام تغطي السجل المتاح فقط.")
         Spacer(Modifier.height(80.dp))
     }
+}
+
+@Composable private fun CycleMetric(label:String,amount:Long) {
+    Hint(label)
+    Text(money(amount),style=MaterialTheme.typography.titleLarge,color=MaterialTheme.colorScheme.onSurface)
 }
 
 @Composable fun AnalyticsScreen(data: Household,period: Finance.Period) {
@@ -260,9 +231,10 @@ private val Gold = Color(0xFFD6AD55)
     val forecast=Finance.forecast(entries,period,LocalDate.parse(data.prefs.trackingStart),LocalDate.now(),outstanding)
     var unit by remember {mutableStateOf("day")}
     Page {
-        Text("تحليلات واضحة",fontSize=25.sp,fontWeight=FontWeight.Bold)
+        ScreenTitle("تحليلات واضحة", "الفترة: ${periodLabel(period)}")
+        AmountLine("صافي المصروفات في الفترة",expense)
         Panel("البنود حسب إجمالي المبلغ") {
-            if(ranked.isEmpty()) Hint("لا توجد بيانات")
+            if(ranked.isEmpty()) Empty("لم تُسجّل مصروفات لهذه الفترة")
             val max=ranked.maxOfOrNull {it.value.coerceAtLeast(0)}?:1L
             ranked.forEach { (id,amount)->
                 Text("${data.category(id)} — ${money(amount)} — ${percent(Finance.percent(amount,expense))}")
@@ -316,12 +288,14 @@ private val Gold = Color(0xFFD6AD55)
     }
 }
 @Composable fun BarChart(values: List<Long>) {
+    val chartColor=MaterialTheme.colorScheme.primary
+    val errorColor=MaterialTheme.colorScheme.error
     Canvas(Modifier.fillMaxWidth().height(140.dp)) {
         val max=values.maxOfOrNull {kotlin.math.abs(it).toDouble()}?.coerceAtLeast(1.0)?:1.0
         val width=size.width/values.size.coerceAtLeast(1)
         values.forEachIndexed {i,value->
             val height=(kotlin.math.abs(value)/max*size.height).toFloat()
-            drawRect(if(value>=0) Green else Color(0xFFAF3D3D),topLeft=androidx.compose.ui.geometry.Offset(size.width-(i+1)*width,size.height-height),size=androidx.compose.ui.geometry.Size(width*0.72f,height))
+            drawRoundRect(if(value>=0) chartColor else errorColor,topLeft=androidx.compose.ui.geometry.Offset(size.width-(i+1)*width,size.height-height),size=androidx.compose.ui.geometry.Size(width*0.72f,height),cornerRadius=androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()))
         }
     }
 }

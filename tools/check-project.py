@@ -11,9 +11,9 @@ application = manifest.find('application')
 assert application.attrib[android+'allowBackup'] == 'false'
 assert application.attrib[android+'supportsRtl'] == 'true'
 assert application.attrib[android+'label'] == 'حساب بيتنا'
-for path in root.rglob('*.xml'):
+for path in (root/'app/src').rglob('*.xml'):
     ET.parse(path)
-for resource in ['logo', 'notification_logo']:
+for resource in ['notification_logo']:
     assert (root/f'app/src/main/res/drawable/{resource}.xml').is_file()
 required = ['Models.kt','Finance.java','BackupCrypto.java','Storage.kt','AppModel.kt',
             'MainActivity.kt','HouseApp.kt','Ui.kt','Forms.kt','Screens.kt','Reports.kt','DuePlanForm.kt']

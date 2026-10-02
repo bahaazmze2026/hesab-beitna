@@ -38,7 +38,7 @@ object Reports {
             lines += "${it.date} | ${typeLabel(it.type)} | ${money(it.amount)} | ${data.category(it.categoryId)} | ${data.account(it.accountId)}"
         }
         val doc = PdfDocument()
-        val paint = TextPaint().apply { textSize = 13f; color = Color.rgb(25,55,49); typeface = Typeface.DEFAULT }
+        val paint = TextPaint().apply { textSize = 13f; color = Color.rgb(72,38,35); typeface = Typeface.DEFAULT }
         var number = 1
         var page = doc.startPage(PdfDocument.PageInfo.Builder(595,842,number).create())
         var y = 35f
