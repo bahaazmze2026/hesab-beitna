@@ -8,6 +8,10 @@ import android.provider.MediaStore
 import android.view.WindowManager
 import android.view.inspector.WindowInspector
 import androidx.compose.ui.test.*
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -30,6 +34,21 @@ class LiquidGlassPilotTest {
     private fun snapshot()=runBlocking{Repository(context).load()}
     private fun waitText(text:String)=compose.waitUntil(30_000){compose.onAllNodesWithText(text,substring=true).fetchSemanticsNodes().isNotEmpty()}
     private fun tag(key:String)=compose.onNodeWithTag(key)
+    private fun assertReadableDarkText(text: String) {
+        val layouts = mutableListOf<TextLayoutResult>()
+        compose.onNodeWithText(text).performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        assertTrue("$text must render a light foreground in dark mode", layouts.single().layoutInput.style.color.luminance() > .45f)
+    }
+    private fun assertCompactFooter() {
+        tag("nav-home").assertHeightIsAtLeast(48.dp)
+        val item = tag("nav-home").fetchSemanticsNode().boundsInRoot
+        assertTrue("Compact navigation must preserve Arabic metrics without a tall bar", item.height / context.resources.displayMetrics.density <= 56f)
+        val content = tag("screen-content").fetchSemanticsNode().boundsInRoot
+        val navigation = tag("nav-home").fetchSemanticsNode().boundsInRoot
+        val density = context.resources.displayMetrics.density
+        assertTrue("No fixed blank band may truncate the screen above navigation", navigation.top - content.bottom < 24 * density)
+        tag("quick-add").assertHeightIsEqualTo(48.dp)
+    }
     private fun capture(name:String,scenario:ActivityScenario<MainActivity>,black:Boolean=false) {
         scenario.onActivity { activity ->
             activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -63,7 +82,7 @@ class LiquidGlassPilotTest {
         runBlocking{Repository(context).save(seed)}
         context.getSharedPreferences("appearance",0).edit().putString("theme","LIGHT").putBoolean("glass",true).putBoolean("reduce-effects",false).commit()
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
-            waitText("كل شيء أوضح");tag("liquid-home-hero").assertExists();capture("home-light",scenario)
+            waitText("كل شيء أوضح");tag("liquid-home-hero").assertExists();assertCompactFooter();capture("home-light",scenario)
             tag("quick-add").performClick();waitText("تضيف إيه؟");capture("quick-light",scenario)
             tag("add-expense").performClick();waitText("تسجيل عملية")
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextInput("25.50")
@@ -76,12 +95,12 @@ class LiquidGlassPilotTest {
             assertTrue(context.getSharedPreferences("appearance",0).getBoolean("reduce-effects",false))
             val before=snapshot();scenario.recreate();waitText("مظهر التطبيق")
             assertTrue(context.getSharedPreferences("appearance",0).getBoolean("reduce-effects",false));assertEquals(before,snapshot())
-            tag("nav-home").performClick();waitText("كل شيء أوضح");capture("home-black-reduced",scenario,true)
+            tag("nav-home").performClick();waitText("كل شيء أوضح");assertCompactFooter();assertReadableDarkText("Meow Budget");capture("home-black-reduced",scenario,true)
             val ledgerBeforeNavigation=snapshot()
             tag("nav-transactions").performClick();compose.waitForIdle();capture("transactions-black",scenario,true)
             tag("nav-analytics").performClick();compose.waitUntil(30_000){compose.onAllNodesWithTag("analysis-overview").fetchSemanticsNodes().isNotEmpty()};tag("analysis-overview").assertExists();compose.waitForIdle();capture("analytics-black",scenario,true)
             tag("nav-plan").performClick();compose.waitForIdle();capture("planning-black",scenario,true)
-            tag("nav-more").performClick();tag("more-accounts").performClick();compose.waitForIdle();capture("accounts-black",scenario,true)
+            tag("nav-more").performClick();assertReadableDarkText("الحسابات والمحافظ");capture("more-black",scenario,true);tag("more-accounts").performClick();compose.waitForIdle();capture("accounts-black",scenario,true)
             tag("nav-more").performClick();tag("more-settings").performScrollTo().performClick();waitText("مظهر التطبيق");capture("settings-black",scenario,true)
             assertEquals(ledgerBeforeNavigation,snapshot())
             tag("nav-home").performClick();waitText("كل شيء أوضح")

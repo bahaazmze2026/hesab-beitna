@@ -68,7 +68,9 @@ import androidx.compose.ui.unit.dp
                     Offset(size.width * .72f, 1.dp.toPx()), strokeWidth = 1.dp.toPx())
             }
         }
-        Box(Modifier.fillMaxWidth()) { content() }
+        CompositionLocalProvider(LocalContentColor provides colors.onSurface) {
+            Box(Modifier.fillMaxWidth()) { content() }
+        }
     }
 }
 
@@ -94,7 +96,8 @@ import androidx.compose.ui.unit.dp
                     Surface(onClick = { click(action.key) }, interactionSource = source,
                         modifier = Modifier.fillMaxWidth().heightIn(min = 88.dp).testTag(action.key)
                             .semantics { role = Role.Button; if (selected != null) this.selected = selected == action.key },
-                        shape = RoundedCornerShape(26.dp), color = if (selected == action.key) MaterialTheme.colorScheme.primaryContainer.copy(alpha = .85f) else Color.Transparent) {
+                        shape = RoundedCornerShape(26.dp), color = if (selected == action.key) MaterialTheme.colorScheme.primaryContainer.copy(alpha = .85f) else Color.Transparent,
+                        contentColor = if (selected == action.key) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface) {
                         Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             ToolIcon(action.icon); Text(action.title, style = MaterialTheme.typography.labelLarge)
@@ -112,26 +115,26 @@ import androidx.compose.ui.unit.dp
         Triple("analytics", "التحليلات", "chart"), Triple("plan", "الخطة", "budget"), Triple("more", "المزيد", "more"))
     val selectedIndex = items.indexOfFirst { it.first == screen }.let { if (it < 0) 4 else it }
     val reduce = LocalAppearance.current.reduceEffects || !LocalAppearance.current.glass
-    LiquidSurface(Modifier.navigationBarsPadding().padding(horizontal = 12.dp, vertical = 10.dp).fillMaxWidth()) {
-        BoxWithConstraints(Modifier.fillMaxWidth().padding(5.dp)) {
+    LiquidSurface(Modifier.navigationBarsPadding().padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth().testTag("bottom-navigation")) {
+        BoxWithConstraints(Modifier.fillMaxWidth().padding(3.dp)) {
             val segment = maxWidth / 5
             val position by animateDpAsState(segment * selectedIndex,
                 if (reduce) snap() else tween(220), label = "liquid-navigation")
             Box(Modifier.matchParentSize()) {
                 Box(Modifier.offset(x = position).width(segment).fillMaxHeight().padding(2.dp)
-                    .clip(RoundedCornerShape(22.dp)).background(MaterialTheme.colorScheme.primaryContainer)
-                    .border(BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .2f)), RoundedCornerShape(22.dp)))
+                    .clip(RoundedCornerShape(18.dp)).background(MaterialTheme.colorScheme.primaryContainer)
+                    .border(BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .2f)), RoundedCornerShape(18.dp)))
             }
             Row(Modifier.fillMaxWidth()) {
                 items.forEachIndexed { index, (key, label, icon) ->
                     val selected = index == selectedIndex
-                    Surface(onClick = { select(key) }, modifier = Modifier.weight(1f).heightIn(min = 66.dp)
+                    Surface(onClick = { select(key) }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)
                         .testTag("nav-$key").semantics { this.selected = selected; role = Role.Tab },
-                        shape = RoundedCornerShape(22.dp), color = Color.Transparent) {
-                        Column(Modifier.padding(vertical = 9.dp, horizontal = 2.dp), horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            ToolIcon(icon, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(label, style = MaterialTheme.typography.labelMedium,
+                        shape = RoundedCornerShape(18.dp), color = Color.Transparent) {
+                        Column(Modifier.padding(vertical = 3.dp, horizontal = 2.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            ToolIcon(icon, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, iconSize = 20.dp)
+                            Text(label, style = MaterialTheme.typography.labelSmall,
                                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
@@ -153,7 +156,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable fun LiquidQuickLink(title:String,detail:String,icon:String,click:()->Unit) {
     LiquidSurface(Modifier.fillMaxWidth()) {
-        Surface(onClick=click,modifier=Modifier.fillMaxWidth().heightIn(min=72.dp),color=Color.Transparent,shape=RoundedCornerShape(26.dp)) {
+        Surface(onClick=click,modifier=Modifier.fillMaxWidth().heightIn(min=72.dp),color=Color.Transparent,contentColor=MaterialTheme.colorScheme.onSurface,shape=RoundedCornerShape(26.dp)) {
             Row(Modifier.padding(18.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                 ToolIcon(icon)
                 Column(Modifier.weight(1f)){Text(title,style=MaterialTheme.typography.titleMedium);Hint(detail)}
@@ -170,6 +173,7 @@ import androidx.compose.ui.unit.dp
         Surface(onClick = onClick, modifier = modifier,
             shape = RoundedCornerShape(26.dp),
             color = if (chosen) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+            contentColor = if (chosen) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
             border = if (chosen) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
             content = content)
     }
