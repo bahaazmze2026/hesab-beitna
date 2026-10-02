@@ -1,10 +1,11 @@
-Executed in this workspace:
-PASS: 34 independent financial acceptance checks
-PASS: 13 authenticated backup acceptance checks
-PASS: 3577 date and accounting invariants
-PASS: offline project structure, XML, RTL/privacy declarations, delimiters and no signing secrets
-PASS: build workflow shell syntax
-
-NOT RUN: Kotlin compilation, Gradle unit tests, Android instrumentation, lint, APK build/signing, phone installation.
-BLOCKER: Android SDK/Gradle are absent; network downloads did not complete.
-No APK is included or claimed.
+Final Android CI run: 36982767432
+Runtime source commit: 269e1d6c9460e39ba8ba84713ce0342d780ccfab
+Core Java checks: 34 financial + 13 authenticated backup + 3577 accounting/date invariants = 3624 PASS
+JUnit unit tests: 8 PASS, 0 failures
+Android API 35 emulator tests: 3 PASS, 0 failures
+Lint: 0 errors, 16 warnings
+Debug and release builds: PASS
+Final release signing: original owner certificate, APK signature v2/v3 verified
+Compiled APK manifest: Arabic label, RTL, API 26/35, no INTERNET, allowBackup false
+APK SHA256: 1075fcc7d306ea425bbd3b646d233c3ee5eee666cba869e225f9280a09a3be46
+Physical Samsung S25 Ultra testing: not performed

@@ -1,116 +1,75 @@
 # بناء التطبيق وتوقيعه
 
-## المتطلبات
+## الأدوات
 
-- Android Studio بإصدار يدعم Android Gradle Plugin 8.7.3.
-- JDK 17. استخدام JDK 17 هو مسار البناء المرجعي، حتى لو توفرت Java 21.
-- Gradle 8.9.
-- Android SDK Platform 35 وAndroid SDK Build Tools 35.0.0.
-- SDK Platform Tools لتثبيت APK باستخدام adb، أو تثبيت الملف مباشرة من الهاتف.
-- اتصال HTTPS بخوادم Google Maven وMaven Central وGradle في أول بناء.
-
-إصدارات Kotlin وCompose والاعتماديات محددة داخل ملفات Gradle. لا يحتاج التطبيق اتصالًا بالإنترنت أثناء الاستخدام.
-
-## إعداد Android Studio
-
-1. افتح مجلد المشروع `hesab-beitna`.
-2. ثبت SDK Platform 35 وBuild Tools 35.0.0 من SDK Manager.
-3. اختر JDK 17 في إعدادات Gradle.
-4. ضع مسار SDK في ملف محلي غير مرفق بالتسليم:
+JDK 17، Android SDK Platform 35، Build Tools 35.0.0، وGradle 8.9. يستخدم المشروع AGP 8.7.3 وKotlin 2.0.21. افتح المجلد في Android Studio واختر JDK 17 وثبت SDK المطلوب. ضع مساره في local.properties خارج Git:
 
 ```properties
 sdk.dir=/absolute/path/to/Android/Sdk
 ```
 
-5. نفذ المزامنة ثم الاختبارات والبناء. يجب إصلاح أي خطأ تجميع أو lint قبل اعتماد APK.
+أول بناء يحتاج الإنترنت لتنزيل الاعتماديات؛ التطبيق نفسه يعمل محليًا دون إذن إنترنت.
 
-## المشغل المحمول
+المشروع يتضمن Gradle Wrapper الرسمي: gradlew وgradlew.bat وgradle/wrapper/gradle-wrapper.jar من Gradle v8.9.0. بصمة JAR SHA-256:
 
-بسبب تعذر تنزيل Gradle في بيئة الجلسة، لا يحتوي المشروع الآن على ملف `gradle-wrapper.jar` الرسمي. ملف `gradlew` المرفق **مشغل محمول مخصص** ينزل التوزيعة الرسمية Gradle 8.9 ويتحقق من SHA-256 المنشور عبر HTTPS، أو يستخدم Gradle المثبت محليًا. عند استخدام Gradle مثبت يجب التأكد من أنه 8.9.
-
-لإنشاء Wrapper الرسمي بعد توفير الأدوات:
-
-```sh
-gradle wrapper --gradle-version 8.9 --distribution-type bin
+```text
+498495120a03b9a6ab5d155f5de3c8f0d986a449153702fb80fc80e134484f17
 ```
 
-هذا يولد المشغلات وملف JAR الرسمي ويستبدل المشغل المحمول. على Windows يمكن تثبيت Gradle 8.9 وتشغيل أوامر `gradle` مباشرة ثم إنشاء Wrapper الرسمي.
-
-## APK تجريبي
+## الاختبارات والبناء
 
 ```sh
 ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug
+./gradlew --no-daemon connectedDebugAndroidTest
 ```
 
-الناتج المتوقع:
+الأمر الثاني يحتاج محاكيًا أو هاتف اختبار متصلًا. على Windows استخدم gradlew.bat. APK التجريبي في app/build/outputs/apk/debug/app-debug.apk.
 
-```text
-app/build/outputs/apk/debug/app-debug.apk
-```
+## توقيع التحديثات
 
-لتثبيته على هاتف اختبار مع تفعيل USB debugging:
+استخدم owner.jks وكلمة المرور من حزمة المالك الخاصة المستلمة. لا تنشئ مفتاحًا آخر لتحديث التطبيق الموجود. احفظ الحزمة خارج المستودع، ولا تنشرها ولا كلمة مرورها.
 
-```sh
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-```
-
-أو انقل الملف للهاتف وافتحه واسمح بالتثبيت من مصدر الملف. لا تحتاج حساب Google Play.
-
-## توقيع release بمفتاح المالك
-
-أنشئ المفتاح مرة واحدة واحفظه وكلمات مروره خارج المستودع. الأمر التالي يطلب كلمات المرور تفاعليًا ولا يضعها في سطر الأوامر:
-
-```sh
-keytool -genkeypair -keystore /safe/location/hesab-beitna-owner.jks -alias owner -keyalg RSA -keysize 3072 -validity 10000
-```
-
-أنشئ `signing.properties` محليًا في جذر المشروع، دون إضافته إلى Git:
+أنشئ signing.properties محليًا في جذر المشروع، وهو مستبعد من Git:
 
 ```properties
-storeFile=/safe/location/hesab-beitna-owner.jks
-storePassword=YOUR_STORE_PASSWORD
+storeFile=/safe/location/owner.jks
+storePassword=PASSWORD_FROM_PRIVATE_BUNDLE
 keyAlias=owner
-keyPassword=YOUR_KEY_PASSWORD
+keyPassword=PASSWORD_FROM_PRIVATE_BUNDLE
 ```
 
 ثم:
 
 ```sh
-./gradlew --no-daemon testDebugUnitTest lintDebug assembleRelease
+./gradlew --no-daemon assembleRelease
 ```
 
-إذا لم يوجد ملف التوقيع، ناتج release سيكون غير موقع ولا يصلح للتسليم كتطبيق قابل للتثبيت. لا تستخدم مفتاح debug كتوقيع إصدار نهائي.
-
-تحقق من التوقيع والبصمة:
+الناتج الموقع في app/build/outputs/apk/release/app-release.apk. دون signing.properties يكون release غير موقع. يمكن توقيع الملف غير الموقع باستعمال apksigner.jar من Build Tools:
 
 ```sh
-"$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
-sha256sum app/build/outputs/apk/release/app-release.apk
+java -jar /path/to/apksigner.jar sign --ks /safe/location/owner.jks --ks-pass file:/safe/location/owner-password.txt --ks-key-alias owner --out hesab-beitna-signed.apk app/build/outputs/apk/release/app-release-unsigned.apk
+java -jar /path/to/apksigner.jar verify --verbose --print-certs hesab-beitna-signed.apk
 ```
 
-احفظ مفتاح المالك لإصدار تحديثات مستقبلية. APK الموقع بمفتاح مختلف لا يحدث التطبيق الموجود؛ حذف التطبيق للتبديل بين debug وrelease يحذف بياناته، لذا خذ نسخة احتياطية أولًا.
+كلمة مرور المفتاح هي كلمة مرور المخزن نفسها؛ يكفي تمرير ملفها مرة واحدة. بصمة شهادة المالك SHA-256:
 
-## البناء على GitHub Actions
+```text
+4b22d18570b9aa5075d32b2b984430bbb50a6c3b00396f6d357296ba3e0cacf0
+```
 
-المسار المرفق يبني debug ويشغل فحوص Java واختبارات Kotlin وlint. لا يشغل اختبارات الهاتف تلقائيًا. لإنتاج release أضف أسرار المستودع التالية عبر واجهة GitHub، دون إدراج قيمها في ملفات الكود:
+## GitHub Actions
 
-- `ANDROID_KEYSTORE_B64`: ملف توقيع المالك مشفرًا تمثيليًا بصيغة Base64؛ Base64 ليس تشفيرًا أمنيًا.
-- `ANDROID_STORE_PASSWORD`
-- `ANDROID_KEY_ALIAS`
-- `ANDROID_KEY_PASSWORD`
+المسار يبني debug وrelease ويشغل فحوص Java والوحدات وlint ومحاكي API 35، ويرفع التقارير وصورة الاختبار. لإنتاج release موقع في CI أضف أسرار المستودع:
 
-لا يُنشأ مفتاح مالك مؤقت في المسار الآلي. لا تحتوي حزمة المصدر على مفاتيح توقيع أو كلمات مرور.
+- ANDROID_KEYSTORE_B64: ملف owner.jks ممثلًا بـBase64؛ هذا التمثيل ليس تشفيرًا.
+- ANDROID_STORE_PASSWORD
+- ANDROID_KEY_ALIAS: owner
+- ANDROID_KEY_PASSWORD
 
-## بوابة التسليم
+دون الأسرار ينتج APK release غير موقع. إنشاء مفتاح جديد تلقائيًا معطل. لا ترفع signing.properties أو المفاتيح الخاصة إلى Git. راجع SIGNING-RECOVERY.md لاستعادة حزمة المالك المشفرة عند الحاجة.
 
-قبل تسليم APK نهائي يجب:
+## التثبيت والتحقق
 
-1. نجاح التجميع واختبارات الوحدات وlint.
-2. تشغيل `connectedDebugAndroidTest` على محاكي أو هاتف اختبار.
-3. مراجعة عربية RTL وخط كبير على Samsung S25 Ultra أو جهاز مكافئ.
-4. اختبار التثبيت النظيف وتحديث إصدار بنفس المفتاح.
-5. اختبار نسخة احتياطية واستعادة على جهاز آخر، والقفل والإشعارات وCSV وPDF.
-6. التأكد من عدم وجود إذن الإنترنت في manifest المدمج، وليس المصدر فقط.
-7. التحقق من توقيع release وبصمة SHA-256، وتسجيل النتائج.
+انقل APK الموقع للهاتف وافتحه، أو استخدم adb install -r مع USB debugging. تحديثات التطبيق تحتاج التوقيع نفسه وزيادة versionCode. حذف التطبيق يحذف البيانات؛ احفظ نسخة احتياطية قبل الحذف أو الانتقال من debug إلى release.
 
-لم تُنجز هذه البوابة في بيئة الجلسة الحالية.
+اجتاز الإصدار الحالي التجميع والوحدات وlint ومحاكي Android 15 وفحص manifest والتوقيع. تجربة S25 Ultra فعليًا، الاستعادة عبر منتقي الملفات على هاتفين، وترقية تثبيت فعلي ببيانات كثيرة لم تُنفذ. التفاصيل في VERIFICATION.md.
