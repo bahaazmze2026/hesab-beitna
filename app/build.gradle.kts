@@ -18,8 +18,8 @@ android {
         applicationId = "com.hesabbeitna.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 4
+        versionName = "1.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
@@ -31,6 +31,7 @@ android {
         }
     }
     buildTypes {
+        debug { applicationIdSuffix = ".preview" }
         release {
             isMinifyEnabled = false
             if (releaseKeys.isNotEmpty()) signingConfig = signingConfigs.getByName("owner")

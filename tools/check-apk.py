@@ -49,7 +49,7 @@ if __name__=='__main__':
     assert 'android.permission.INTERNET' not in permissions
     assert app['allowBackup'] is False and app['supportsRtl'] is True
     assert app['label']=='حساب بيتنا'
-    assert package['package']=='com.hesabbeitna.app'
+    assert package['package']==(sys.argv[2] if len(sys.argv)>2 else 'com.hesabbeitna.app')
     assert sdk['minSdkVersion']==26
     result={'apk':apk.name,'sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),
         'label':app['label'],'package':package['package'],'version':package.get('versionName'),

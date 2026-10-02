@@ -2,10 +2,11 @@ package com.hesabbeitna.app
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import java.math.BigDecimal
 
 @Composable fun DuePlanForm(data:Household,model:AppModel,due:Due,dismiss:()->Unit) {
-    var amount by remember {mutableStateOf(BigDecimal.valueOf(due.amount,2).toPlainString())}
+    var amount by rememberSaveable {mutableStateOf(BigDecimal.valueOf(due.amount,2).toPlainString())}
     var error by remember {mutableStateOf<String?>(null)}
     var submitted by remember {mutableStateOf(false)}
     DialogForm("المبلغ المخطط — ${due.title}",dismiss) {

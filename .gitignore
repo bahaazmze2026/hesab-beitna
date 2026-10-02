@@ -10,3 +10,5 @@ recovery-private.pem
 owner-password.txt
 .idea/
 *.hbb
+
+.kotlin/

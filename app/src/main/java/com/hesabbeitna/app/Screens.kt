@@ -1,10 +1,17 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 package com.hesabbeitna.app
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -13,14 +20,14 @@ import java.time.LocalDate
 
 @Composable fun TransactionsScreen(data: Household,period: Finance.Period,edit: (Transaction)->Unit,
     delete: (Transaction)->Unit,refund: (Transaction)->Unit) {
-    var search by remember {mutableStateOf("")}
-    var category by remember {mutableStateOf("")}
-    var account by remember {mutableStateOf("")}
+    var search by rememberSaveable {mutableStateOf("")}
+    var category by rememberSaveable {mutableStateOf("")}
+    var account by rememberSaveable {mutableStateOf("")}
     var type by remember {mutableStateOf("")}
-    var from by remember(period.start) {mutableStateOf(period.start.toString())}
-    var to by remember(period.end) {mutableStateOf(period.end.minusDays(1).toString())}
-    var filters by remember {mutableStateOf(false)}
-    var limit by remember {mutableIntStateOf(100)}
+    var from by rememberSaveable(period.start) {mutableStateOf(period.start.toString())}
+    var to by rememberSaveable(period.end) {mutableStateOf(period.end.minusDays(1).toString())}
+    var filters by rememberSaveable {mutableStateOf(false)}
+    var limit by rememberSaveable {mutableIntStateOf(100)}
     val dates=runCatching {Finance.Period(LocalDate.parse(from),LocalDate.parse(to).plusDays(1))}.getOrNull()
     val list=remember(data.transactions,search,category,account,type,from,to) {
         data.transactions.filter { t->
@@ -31,7 +38,7 @@ import java.time.LocalDate
         }.sortedWith(compareByDescending<Transaction> {it.date}.thenByDescending {it.created})
     }
     Page {
-        Text("سجل العمليات",fontSize=25.sp,fontWeight=FontWeight.Bold)
+        ScreenTitle("سجل العمليات")
         Field(search,{search=it;limit=100},"ابحث في الملاحظة أو البند أو الحساب")
         TextButton(onClick={filters=!filters}) {Text(if(filters)"إخفاء الفلاتر"else"التصفية بالتاريخ والتصنيف والحساب")}
         if(filters) {
@@ -48,16 +55,16 @@ import java.time.LocalDate
         list.take(limit).forEach {t->
             if(previousDate!=t.date) {Text(displayDate(t.date),fontWeight=FontWeight.Bold);previousDate=t.date}
             Panel {
-                Row(Modifier.fillMaxWidth()) {
-                    Column(Modifier.weight(1f)) {
+                Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                    Column {
                         Text(if(t.type==TxType.TRANSFER)"${data.account(t.accountId)} ← ${data.account(t.destinationId)}"else data.category(t.categoryId),fontWeight=FontWeight.Bold)
                         Hint("${typeLabel(t.type)} • ${data.account(t.accountId)} • ${t.payment}")
                     }
-                    Text(money(t.amount),fontWeight=FontWeight.Bold,color=if(t.type==TxType.EXPENSE)Color(0xFFAF3D3D)else Color(0xFF14675B))
+                    Text(money(t.amount),fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleLarge,color=MaterialTheme.colorScheme.primary)
                 }
                 if(t.note.isNotBlank()) Text(t.note,fontSize=13.sp)
                 if(t.dueId!=null) Hint("مرتبط بسداد التزام")
-                Row {
+                androidx.compose.foundation.layout.FlowRow {
                     TextButton(onClick={edit(t)}) {Text("تعديل")}
                     TextButton(onClick={delete(t)}) {Text("حذف")}
                     if(t.type==TxType.EXPENSE && data.transactions.filter {it.originalId==t.id}.sumOf {it.amount}<t.amount) TextButton(onClick={refund(t)}) {Text("استرداد")}
@@ -70,15 +77,15 @@ import java.time.LocalDate
 }
 
 @Composable fun BudgetScreen(data: Household,period: Finance.Period,model: AppModel) {
-    var category by remember {mutableStateOf("")}
-    var amount by remember {mutableStateOf("")}
+    var category by rememberSaveable {mutableStateOf("")}
+    var amount by rememberSaveable {mutableStateOf("")}
     var error by remember {mutableStateOf<String?>(null)}
     val existing=data.budget(period,category.ifBlank {null})
     LaunchedEffect(category,period.start,existing?.amount) { amount=existing?.amount?.let {java.math.BigDecimal.valueOf(it,2).toPlainString()}?:"" }
     val spent=Finance.categories(data.entries(),period)
     val budgets=data.budgets.filter {it.period==period.start.toString()}
     Page {
-        Text("ميزانية الدورة",fontSize=25.sp,fontWeight=FontWeight.Bold)
+        ScreenTitle("ميزانية الدورة")
         Panel("تحديد الميزانية") {
             Choice("الميزانية",category,listOf("" to "البيت بالكامل")+data.categories.filter {!it.income&&!it.archived}.map {it.id to it.name}) {category=it}
             Field(amount,{amount=it},"المبلغ المحدد — جنيه",true)
@@ -121,12 +128,12 @@ import java.time.LocalDate
     var adding by remember {mutableStateOf(false)}
     var editing by remember {mutableStateOf<BillRule?>(null)}
     var planned by remember {mutableStateOf<Due?>(null)}
-    var showPaid by remember {mutableStateOf(false)}
-    var limit by remember {mutableIntStateOf(100)}
+    var showPaid by rememberSaveable {mutableStateOf(false)}
+    var limit by rememberSaveable {mutableIntStateOf(100)}
     val cutoff=LocalDate.now().plusDays(60)
     val dues=data.dues.filter {(showPaid||data.remaining(it)>0)&&!LocalDate.parse(it.date).isAfter(cutoff)}.sortedBy {it.date}
     Page {
-        Text("الفواتير والأقساط",fontSize=25.sp,fontWeight=FontWeight.Bold)
+        ScreenTitle("الفواتير والأقساط")
         Button(onClick={adding=true},modifier=Modifier.fillMaxWidth()) {Text("＋ التزام متكرر")}
         Hint("القائمة تشمل المتأخرات والاستحقاقات خلال 60 يومًا. المبالغ المخططة لا تدخل الأرصدة أو المصروفات قبل السداد.")
         Row {Checkbox(checked=showPaid,onCheckedChange={showPaid=it});Text("إظهار المدفوع أيضًا",modifier=Modifier.padding(top=12.dp))}
@@ -167,7 +174,7 @@ import java.time.LocalDate
     var editing by remember {mutableStateOf<Account?>(null)}
     var goal by remember {mutableStateOf(false)}
     Page {
-        Text("حساباتي ومحافظي",fontSize=25.sp,fontWeight=FontWeight.Bold)
+        ScreenTitle("حساباتي ومحافظي")
         AmountLine("إجمالي الأرصدة الحالية",data.accounts.sumOf {data.balance(it)})
         Button(onClick=add,modifier=Modifier.fillMaxWidth()) {Text("＋ حساب أو محفظة")}
         data.accounts.forEach {account->Panel(account.name) {
@@ -204,9 +211,9 @@ import java.time.LocalDate
 }
 
 @Composable fun GoalForm(data:Household,model:AppModel,dismiss:()->Unit) {
-    var title by remember {mutableStateOf(data.prefs.goal.title)}
-    var amount by remember {mutableStateOf(java.math.BigDecimal.valueOf(data.prefs.goal.target,2).toPlainString())}
-    var account by remember {mutableStateOf(data.prefs.goal.accountId?:data.accounts.first().id)}
+    var title by rememberSaveable {mutableStateOf(data.prefs.goal.title)}
+    var amount by rememberSaveable {mutableStateOf(java.math.BigDecimal.valueOf(data.prefs.goal.target,2).toPlainString())}
+    var account by rememberSaveable {mutableStateOf(data.prefs.goal.accountId?:data.accounts.first().id)}
     var error by remember {mutableStateOf<String?>(null)}
     DialogForm("هدف الادخار",dismiss) {
         Field(title,{title=it.take(80)},"اسم الهدف")
@@ -219,13 +226,35 @@ import java.time.LocalDate
 }
 
 @Composable fun SettingsScreen(data:Household,model:AppModel,canLock:()->Boolean,notifications:()->Unit,
-    backup:()->Unit,restore:()->Unit,csv:()->Unit,pdf:()->Unit) {
-    var category by remember {mutableStateOf(false)}
+    accounts:()->Unit,budget:()->Unit,dues:()->Unit,backup:()->Unit,restore:()->Unit,csv:()->Unit,pdf:()->Unit) {
+    var category by rememberSaveable {mutableStateOf(false)}
     var cycle by remember {mutableStateOf(false)}
     var exportKind by remember {mutableStateOf<String?>(null)}
     var undo by remember {mutableStateOf(false)}
     Page {
-        Text("الإعدادات والخصوصية",fontSize=25.sp,fontWeight=FontWeight.Bold)
+        ScreenTitle("الإعدادات والخصوصية")
+        Panel("مظهر التطبيق") {
+            val appearance=LocalAppearance.current
+            Hint("اختيارك مستقل عن وضع الهاتف، ويُحفظ تلقائيًا")
+            ThemeMode.entries.forEach { mode->
+                Surface(onClick={appearance.chooseMode(mode)},modifier=Modifier.fillMaxWidth().heightIn(min=56.dp)
+                    .testTag("theme-${mode.name.lowercase()}").semantics{selected=appearance.mode==mode;role=Role.RadioButton},shape=Brand.Input,
+                    color=if(appearance.mode==mode)MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface) {
+                    Row(Modifier.padding(16.dp),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
+                        Text(mode.title,modifier=Modifier.weight(1f));if(appearance.mode==mode)ToolIcon("check")
+                    }
+                }
+            }
+            Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)){Text("المظهر الزجاجي");Hint("زجاج مطفي وإضاءة ناعمة في أدوات التنقل والاختيار")}
+                Switch(checked=appearance.glass,onCheckedChange={appearance.chooseGlass(it)},modifier=Modifier.testTag("glass-toggle"))
+            }
+        }
+        Panel("إدارة البيت") {
+            QuickLink("الحسابات وهدف الادخار","الأرصدة والمحافظ", "wallet",accounts)
+            QuickLink("الميزانية","ميزانية البيت والبنود", "budget",budget)
+            QuickLink("الفواتير والأقساط","التكرار والسداد", "calendar",dues)
+        }
         Panel("بيتك") {
             Text("بداية الدورة: يوم ${data.prefs.salaryDay} • بدء المتابعة: ${data.prefs.trackingStart}")
             Hint("العربية • الجنيه المصري • أرقام 123 • شخص واحد")
@@ -233,11 +262,11 @@ import java.time.LocalDate
             OutlinedButton(onClick={category=true},modifier=Modifier.fillMaxWidth()) {Text("إدارة التصنيفات")}
         }
         Panel("قفل التطبيق") {
-            Row {
+            Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
                 Switch(checked=data.prefs.lock,onCheckedChange={enabled->
                     if(enabled&&!canLock())model.message("فعّل قفل الشاشة أو البصمة في إعدادات الهاتف أولًا")
                     else model.change {it.copy(prefs=it.prefs.copy(lock=enabled))}
-                });Column(Modifier.padding(8.dp)) {Text("البصمة أو قفل الهاتف");Hint("يعاد القفل عند مغادرة التطبيق")}
+                });Column(Modifier.weight(1f).padding(8.dp)) {Text("البصمة أو قفل الهاتف");Hint("يعاد القفل عند مغادرة التطبيق")}
             }
             Hint("البيانات المحلية مشفرة. لقطات الشاشة ومعاينة المهام محجوبة لحماية تفاصيل الحساب.")
         }
@@ -253,7 +282,7 @@ import java.time.LocalDate
             Hint("التصدير يستخدم الدورة التي اخترتها من الرئيسية. ملف التقرير ليس بديلًا عن النسخة الاحتياطية.")
         }
         Panel("التنبيهات") {Button(onClick=notifications) {Text("تفعيل إذن تذكير الفواتير")};Hint("تذكير يومي تقريبي؛ قد تؤخره إدارة بطارية الهاتف. لا يعرض تفاصيل مالية على شاشة القفل.")}
-        Panel("عن حساب بيتنا") {Text("الإصدار 1.0.0");Hint("تطبيق محلي دون إذن الإنترنت. التوصيات حسابية ومفسرة، والتوقعات منفصلة عن النتائج الفعلية.")}
+        Panel("عن حساب بيتنا") {Text("الإصدار 1.3.0 • هوية القطة والمحفظة");Hint("تطبيق محلي دون إذن الإنترنت. التوصيات حسابية ومفسرة، والتوقعات منفصلة عن النتائج الفعلية.")}
         Spacer(Modifier.height(32.dp))
     }
     if(category) CategoriesForm(data,model,{category=false})
@@ -267,7 +296,7 @@ import java.time.LocalDate
 }
 
 @Composable fun CategoriesForm(data:Household,model:AppModel,dismiss:()->Unit) {
-    var name by remember {mutableStateOf("")}
+    var name by rememberSaveable {mutableStateOf("")}
     var type by remember {mutableStateOf("expense")}
     var editing by remember {mutableStateOf<String?>(null)}
     var error by remember {mutableStateOf<String?>(null)}
@@ -300,7 +329,7 @@ import java.time.LocalDate
 }
 
 @Composable fun CycleForm(data:Household,model:AppModel,dismiss:()->Unit) {
-    var day by remember {mutableStateOf(data.prefs.salaryDay.toString())}
+    var day by rememberSaveable {mutableStateOf(data.prefs.salaryDay.toString())}
     var error by remember {mutableStateOf<String?>(null)}
     DialogForm("بداية دورة الراتب",dismiss) {
         Field(day,{day=it},"يوم الراتب 1–31",true)

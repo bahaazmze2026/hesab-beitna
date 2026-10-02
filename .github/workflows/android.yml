@@ -2,7 +2,8 @@ name: Android build and checks
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, "feat/**", "fix/**"]
+  pull_request:
 permissions:
   contents: read
 jobs:
@@ -43,10 +44,7 @@ jobs:
           arch: x86_64
           profile: pixel_7
           disable-animations: true
-          script: |
-            gradle --no-daemon connectedDebugAndroidTest
-            mkdir -p qa
-            adb pull /sdcard/Pictures/HesabBeitnaQA/qa-dashboard.png qa/dashboard.png
+          script: bash tools/run-ui-qa.sh
       - name: Build release APK and provide local signing tool
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
@@ -70,8 +68,8 @@ jobs:
             gradle --no-daemon assembleRelease
             "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
             mkdir -p qa
-            cp app/build/outputs/apk/release/app-release.apk qa/hesab-beitna-1.0.0.apk
-            sha256sum qa/hesab-beitna-1.0.0.apk > qa/hesab-beitna-1.0.0.sha256
+            cp app/build/outputs/apk/release/app-release.apk qa/hesab-beitna-1.3.0.apk
+            sha256sum qa/hesab-beitna-1.3.0.apk > qa/hesab-beitna-1.3.0.sha256
           else
             gradle --no-daemon assembleRelease
             mkdir -p qa
