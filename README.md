@@ -1,3 +1,7 @@
+## Meow Budget 1.6.1 — compact footer and dark text fix
+
+Removes the fixed blank band above navigation, reduces the bottom bar and add button, and restores readable default text colors across dark glass surfaces. Build/lint, 38 unit tests, 12 Android tests and separate 8→9 update stages passed. [Acceptance and APK details](docs/compact-layout-1.6.1.md).
+
 # Meow Budget — Liquid Glass 1.6.0
 
 المظهر الزجاجي موحد في الرئيسية والتنقل والعمليات والتحليلات والخطة والحسابات والإعدادات ونوافذ الإدخال. الدارك أسود حقيقي، مع اختيار الفاتح أو الأسود مستقلًا عن الهاتف وخيار تقليل المؤثرات.
