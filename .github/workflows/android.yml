@@ -45,9 +45,12 @@ jobs:
           profile: pixel_7
           disable-animations: true
           script: |
-            gradle --no-daemon connectedDebugAndroidTest
+            status=0
+            gradle --no-daemon connectedDebugAndroidTest || status=$?
             mkdir -p qa
-            adb pull /sdcard/Pictures/HesabBeitnaQA/ qa/screenshots/
+            adb pull /sdcard/Pictures/HesabBeitnaQA/ qa/screenshots/ || true
+            adb pull /sdcard/Android/data/com.hesabbeitna.app.preview/files/ qa/ui-diagnostics/ || true
+            exit "$status"
       - name: Build release APK and provide local signing tool
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
@@ -71,8 +74,8 @@ jobs:
             gradle --no-daemon assembleRelease
             "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
             mkdir -p qa
-            cp app/build/outputs/apk/release/app-release.apk qa/hesab-beitna-1.1.0.apk
-            sha256sum qa/hesab-beitna-1.1.0.apk > qa/hesab-beitna-1.1.0.sha256
+            cp app/build/outputs/apk/release/app-release.apk qa/hesab-beitna-1.2.0.apk
+            sha256sum qa/hesab-beitna-1.2.0.apk > qa/hesab-beitna-1.2.0.sha256
           else
             gradle --no-daemon assembleRelease
             mkdir -p qa

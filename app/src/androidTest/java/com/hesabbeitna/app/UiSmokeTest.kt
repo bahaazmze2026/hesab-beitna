@@ -22,7 +22,15 @@ class UiSmokeTest {
     @get:Rule val compose=createEmptyComposeRule()
     private val instrumentation get()=InstrumentationRegistry.getInstrumentation()
     private val context get()=instrumentation.targetContext
-    private fun waitText(text:String) {compose.waitUntil(30_000){compose.onAllNodesWithText(text,substring=true).fetchSemanticsNodes().isNotEmpty()}}
+    private fun waitText(text:String) {
+        try {compose.waitUntil(30_000){compose.onAllNodesWithText(text,substring=true).fetchSemanticsNodes().isNotEmpty()}}
+        catch(error:Exception){
+            val folder=context.getExternalFilesDir(null)!!
+            UiDevice.getInstance(instrumentation).dumpWindowHierarchy(File(folder,"failure-hierarchy.xml"))
+            UiDevice.getInstance(instrumentation).takeScreenshot(File(folder,"failure-screen.png"))
+            throw error
+        }
+    }
     private fun screenshot(name:String,scenario:ActivityScenario<MainActivity>) {
         scenario.onActivity{it.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)}
         compose.waitForIdle()
@@ -78,10 +86,49 @@ class UiSmokeTest {
             compose.onNodeWithTag("nav-settings").performClick();waitText("الإعدادات والخصوصية");screenshot("settings",scenario)
             compose.onNodeWithText("الحسابات وهدف الادخار").performScrollTo().performClick();waitText("حساباتي ومحافظي");screenshot("accounts",scenario)
             UiDevice.getInstance(instrumentation).pressBack();waitText("كل شيء أوضح")
-            compose.onNodeWithText("إدارة الميزانية").performScrollTo().performClick();waitText("ميزانية الدورة");screenshot("budget",scenario)
+            compose.onNodeWithTag("open-budget").performScrollTo().performClick();waitText("ميزانية الدورة");screenshot("budget",scenario)
             UiDevice.getInstance(instrumentation).pressBack();waitText("كل شيء أوضح")
             compose.onNodeWithText("الفواتير والأقساط").performScrollTo().performClick();waitText("الفواتير والأقساط");screenshot("dues",scenario)
             assertEquals(-7050L,financialSnapshot().balance(financialSnapshot().accounts.single()))
+        }
+    }
+    @Test fun appearancePersistsAndIconCategoryCanBeCreated() {
+        val account=Account("cash","النقد")
+        runBlocking{Repository(context).save(Household(accounts=listOf(account),prefs=Preferences(ready=true,trackingStart=today(),defaultAccount="cash")))}
+        context.getSharedPreferences("appearance",android.content.Context.MODE_PRIVATE).edit().clear().commit()
+        ActivityScenario.launch(MainActivity::class.java).use {scenario->
+            waitText("كل شيء أوضح")
+            compose.onNodeWithTag("nav-settings").performClick()
+            compose.onNodeWithTag("theme-light").performScrollTo().performClick().assertIsSelected()
+            screenshot("light-settings",scenario)
+            scenario.recreate();waitText("مظهر التطبيق")
+            compose.onNodeWithTag("theme-light").assertIsSelected()
+            compose.onNodeWithTag("theme-dark").performScrollTo().performClick().assertIsSelected()
+            screenshot("dark-settings",scenario)
+            scenario.recreate();waitText("مظهر التطبيق")
+            compose.onNodeWithTag("theme-dark").assertIsSelected()
+            compose.onNodeWithTag("theme-system").performScrollTo().performClick().assertIsSelected()
+            compose.onNodeWithTag("theme-light").performScrollTo().performClick()
+            compose.onNodeWithTag("glass-toggle").performScrollTo().performClick().assertIsOff()
+            scenario.recreate();waitText("مظهر التطبيق")
+            compose.onNodeWithTag("glass-toggle").performScrollTo().assertIsOff().performClick().assertIsOn()
+            compose.onNodeWithTag("nav-home").performClick()
+            compose.onNodeWithTag("expense-fab").performScrollTo().performClick()
+            compose.onNodeWithTag("category-picker").performScrollTo().performClick()
+            compose.onNodeWithTag("category-grid").assertIsDisplayed();screenshot("icon-categories",scenario)
+            compose.onNodeWithTag("category-grid").performScrollToNode(hasTestTag("new-category"))
+            compose.onNodeWithTag("new-category").performClick()
+            compose.onNode(hasSetTextAction() and hasText("اسم الصنف")).performTextInput("احتياجات خاصة")
+            compose.onNodeWithTag("icon-cart").performScrollTo().performClick()
+            compose.onNodeWithText("حفظ الصنف").performScrollTo().performClick()
+            compose.waitUntil(30_000){financialSnapshot().categories.any{it.name=="احتياجات خاصة"}}
+            compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performScrollTo().performTextInput("12.50")
+            compose.onNodeWithText("حفظ",useUnmergedTree=false).performScrollTo().performClick()
+            compose.waitUntil(30_000){financialSnapshot().transactions.size==1}
+            val snapshot=financialSnapshot()
+            assertEquals("احتياجات خاصة",snapshot.category(snapshot.transactions.single().categoryId))
+            assertEquals(1250L,snapshot.transactions.single().amount)
+            assertEquals(-1250L,snapshot.balance(snapshot.accounts.single()))
         }
     }
     @Test fun largeAmountsLongArabicAndActivityRecreation() {

@@ -45,7 +45,7 @@ private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString(
         Field(amount,{amount=it;amountError=null},"المبلغ — جنيه",true,error=amountError)
         if(type!=TxType.TRANSFER) {
             val cats=data.categories.filter {it.income==(type==TxType.INCOME)&&(!it.archived||it.id==category)}
-            if(due==null && editing?.dueId==null) Choice("التصنيف",category,cats.map {it.id to it.name}) {category=it}
+            if(due==null && editing?.dueId==null) CategoryChoice(cats,category,data.transactions,model) {category=it}
             else Hint("التصنيف: ${data.category(category)}؛ مرتبط بالالتزام")
         }
         val accounts=data.accounts.filter {!it.archived||it.id==account||it.id==destination}
@@ -153,7 +153,7 @@ private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString(
     DialogForm(if(editing==null)"فاتورة أو قسط متكرر"else"تعديل التكرار المستقبلي",dismiss) {
         Field(title,{title=it.take(80)},"اسم الالتزام")
         Field(amount,{amount=it},"المبلغ المخطط لكل استحقاق",true)
-        Choice("التصنيف",category,data.categories.filter {!it.income&&(!it.archived||it.id==category)}.map {it.id to it.name}) {category=it}
+        CategoryChoice(data.categories.filter {!it.income&&(!it.archived||it.id==category)},category,data.transactions,model) {category=it}
         Field(date,{date=it},"أول استحقاق YYYY-MM-DD")
         Choice("التكرار",every,listOf("1" to "شهري","2" to "كل شهرين","3" to "كل 3 أشهر","6" to "كل 6 أشهر","12" to "سنوي")) {every=it}
         Field(end,{end=it},"آخر تاريخ — اختياري YYYY-MM-DD")

@@ -186,7 +186,7 @@ import java.time.temporal.ChronoUnit
                 LinearProgressIndicator(progress={if(budget.amount>0)(expense.toFloat()/budget.amount).coerceIn(0f,1f)else 0f},modifier=Modifier.fillMaxWidth())
                 Hint("المحدد ${money(budget.amount)} • المستخدم ${percent(Finance.percent(expense,budget.amount))}")
             }
-            TextButton(onClick=budgetOpen){Text("إدارة الميزانية")}
+            TextButton(onClick=budgetOpen,modifier=Modifier.testTag("open-budget")){Text("إدارة الميزانية")}
         }
         Panel("أين تذهب الأموال؟") {
             if(top==null||top.value<=0)Hint("أضف أول مصروف ليظهر توزيع الإنفاق") else {

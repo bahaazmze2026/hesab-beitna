@@ -10,6 +10,14 @@ class HouseholdTest {
         prefs=Preferences(ready=true,salaryDay=1,trackingStart=start,defaultAccount="cash"))
     private fun expense(id:String="tx",amount:Long=10_000,due:String?=null)=Transaction(id,TxType.EXPENSE,amount,start,"cash",categoryId="expense-0",dueId=due)
     private fun rejects(block:()->Unit) { var failed=false;try{block()}catch(_:IllegalArgumentException){failed=true};assertTrue(failed) }
+    @Test fun manualThemeOverridesPhoneInBothDirections() {
+        assertFalse(resolveDark(ThemeMode.LIGHT,true))
+        assertFalse(resolveDark(ThemeMode.LIGHT,false))
+        assertTrue(resolveDark(ThemeMode.DARK,false))
+        assertTrue(resolveDark(ThemeMode.DARK,true))
+        assertTrue(resolveDark(ThemeMode.SYSTEM,true))
+        assertFalse(resolveDark(ThemeMode.SYSTEM,false))
+    }
     @Test fun transferIsNotIncomeOrExpense() {
         val data=house().copy(transactions=listOf(Transaction("transfer",TxType.TRANSFER,50_000,start,"cash",destinationId="wallet"))).validate()
         assertEquals(50_000L,data.balance(data.accounts[0]));assertEquals(50_000L,data.balance(data.accounts[1]))

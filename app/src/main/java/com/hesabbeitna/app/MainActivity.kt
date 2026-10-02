@@ -6,11 +6,16 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.SystemBarStyle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 
@@ -43,7 +48,15 @@ class MainActivity : FragmentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         enableEdgeToEdge()
         setContent {
-            HouseTheme {
+            val appearance=remember { Appearance(this@MainActivity) }
+            val dark=resolveDark(appearance.mode,isSystemInDarkTheme())
+            SideEffect {
+                val bar=if(dark)SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                    else SystemBarStyle.light(android.graphics.Color.TRANSPARENT,android.graphics.Color.TRANSPARENT)
+                enableEdgeToEdge(statusBarStyle=bar,navigationBarStyle=bar)
+            }
+            CompositionLocalProvider(LocalAppearance provides appearance) {
+            HouseTheme(dark=dark) {
                 HouseRoot(model, authenticated.value,
                     unlock = { authenticate() },
                     canLock = { BiometricManager.from(this).canAuthenticate(authenticators()) == BiometricManager.BIOMETRIC_SUCCESS },
@@ -58,6 +71,7 @@ class MainActivity : FragmentActivity() {
                         else model.message("يمكن التحكم في التنبيهات من إعدادات Android") }
                 )
             }
+        }
         }
     }
     private fun authenticators() = BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL

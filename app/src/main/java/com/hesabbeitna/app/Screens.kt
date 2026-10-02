@@ -7,6 +7,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -228,6 +233,23 @@ import java.time.LocalDate
     var undo by remember {mutableStateOf(false)}
     Page {
         ScreenTitle("الإعدادات والخصوصية")
+        Panel("مظهر التطبيق") {
+            val appearance=LocalAppearance.current
+            Hint("اختيارك مستقل عن وضع الهاتف، ويُحفظ تلقائيًا")
+            ThemeMode.entries.forEach { mode->
+                Surface(onClick={appearance.chooseMode(mode)},modifier=Modifier.fillMaxWidth().heightIn(min=56.dp)
+                    .testTag("theme-${mode.name.lowercase()}").semantics{selected=appearance.mode==mode;role=Role.RadioButton},shape=Brand.Input,
+                    color=if(appearance.mode==mode)MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface) {
+                    Row(Modifier.padding(16.dp),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
+                        Text(mode.title,modifier=Modifier.weight(1f));if(appearance.mode==mode)ToolIcon("check")
+                    }
+                }
+            }
+            Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)){Text("المظهر الزجاجي");Hint("زجاج مطفي وإضاءة ناعمة في أدوات التنقل والاختيار")}
+                Switch(checked=appearance.glass,onCheckedChange={appearance.chooseGlass(it)},modifier=Modifier.testTag("glass-toggle"))
+            }
+        }
         Panel("إدارة البيت") {
             QuickLink("الحسابات وهدف الادخار","الأرصدة والمحافظ", "wallet",accounts)
             QuickLink("الميزانية","ميزانية البيت والبنود", "budget",budget)
@@ -260,7 +282,7 @@ import java.time.LocalDate
             Hint("التصدير يستخدم الدورة التي اخترتها من الرئيسية. ملف التقرير ليس بديلًا عن النسخة الاحتياطية.")
         }
         Panel("التنبيهات") {Button(onClick=notifications) {Text("تفعيل إذن تذكير الفواتير")};Hint("تذكير يومي تقريبي؛ قد تؤخره إدارة بطارية الهاتف. لا يعرض تفاصيل مالية على شاشة القفل.")}
-        Panel("عن حساب بيتنا") {Text("الإصدار 1.1.0 • هوية القطة والمحفظة");Hint("تطبيق محلي دون إذن الإنترنت. التوصيات حسابية ومفسرة، والتوقعات منفصلة عن النتائج الفعلية.")}
+        Panel("عن حساب بيتنا") {Text("الإصدار 1.2.0 • هوية القطة والمحفظة");Hint("تطبيق محلي دون إذن الإنترنت. التوصيات حسابية ومفسرة، والتوقعات منفصلة عن النتائج الفعلية.")}
         Spacer(Modifier.height(32.dp))
     }
     if(category) CategoriesForm(data,model,{category=false})

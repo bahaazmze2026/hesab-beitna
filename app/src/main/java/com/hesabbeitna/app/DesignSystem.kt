@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -37,6 +38,10 @@ import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.compose.ui.platform.LocalView
+import android.os.Build
+import android.view.WindowManager
 
 object Brand {
     val Orange=Color(0xFFEE9451); val Green=Color(0xFF26734D); val Ivory=Color(0xFFFFF8EF); val Brown=Color(0xFF482623)
@@ -127,7 +132,8 @@ private val HouseTypography=Typography(
 }
 @Composable fun DialogForm(title:String,dismiss:()->Unit,content:@Composable ColumnScope.()->Unit) {
     androidx.compose.ui.window.Dialog(onDismissRequest=dismiss,properties=DialogProperties(usePlatformDefaultWidth=false)) {
-        Surface(Modifier.fillMaxWidth().padding(horizontal=12.dp).safeDrawingPadding().imePadding(),shape=RoundedCornerShape(28.dp),color=MaterialTheme.colorScheme.surface) {
+        FrostedWindow()
+        GlassSurface(Modifier.fillMaxWidth().padding(horizontal=12.dp).safeDrawingPadding().imePadding()) {
             Column(Modifier.fillMaxWidth().heightIn(max=650.dp).verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
                 Row(verticalAlignment=Alignment.CenterVertically) {
                     Text(title,style=MaterialTheme.typography.headlineSmall,modifier=Modifier.weight(1f).semantics{heading()})
@@ -162,11 +168,44 @@ private val HouseTypography=Typography(
         if(back!=null) TextButton(onClick=back,modifier=Modifier.heightIn(min=48.dp)){Text("رجوع")}
     }
 }
+/** Android 12+ blurs the real content behind modal windows when the device supports it. */
+@Composable fun FrostedWindow() {
+    val window=(LocalView.current.parent as? DialogWindowProvider)?.window
+    val enabled=LocalAppearance.current.glass
+    DisposableEffect(window,enabled) {
+        if(Build.VERSION.SDK_INT>=31&&window!=null) {
+            val oldRadius=window.attributes.blurBehindRadius
+            val hadFlag=window.attributes.flags and WindowManager.LayoutParams.FLAG_BLUR_BEHIND!=0
+            if(enabled) {
+                window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                window.attributes=window.attributes.apply{blurBehindRadius=32}
+            } else window.clearFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+            onDispose {
+                window.attributes=window.attributes.apply{blurBehindRadius=oldRadius}
+                if(!hadFlag)window.clearFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+            }
+        } else onDispose {}
+    }
+}
+/** Soft lighting is blurred independently so labels and amounts remain sharp. */
+@Composable fun GlassSurface(modifier:Modifier=Modifier,content:@Composable ()->Unit) {
+    val colors=MaterialTheme.colorScheme
+    val glass=LocalAppearance.current.glass
+    Box(modifier.clip(Brand.Card).background(colors.surface)) {
+        if(glass)Canvas(Modifier.matchParentSize().blur(24.dp)) {
+            drawCircle(Brand.Orange.copy(alpha=.20f),size.width*.5f,Offset(size.width*.95f,size.height*.10f))
+            drawCircle(colors.primary.copy(alpha=.14f),size.width*.45f,Offset(0f,size.height*.9f))
+        }
+        Surface(shape=Brand.Card,color=colors.surface.copy(alpha=if(glass).66f else 1f),
+            border=BorderStroke(1.dp,if(glass)colors.onSurface.copy(alpha=.14f)else colors.outlineVariant)) {
+            Box(Modifier.background(Brush.verticalGradient(listOf(if(glass)colors.surface.copy(alpha=.55f)else Color.Transparent,Color.Transparent)))){content()}
+        }
+    }
+}
 @Composable fun GlassNavigation(screen:String,select:(String)->Unit) {
     val items=listOf(Triple("home","الرئيسية","home"),Triple("transactions","العمليات","list"),Triple("analytics","التحليلات","chart"),Triple("settings","الإعدادات","settings"))
-    Surface(Modifier.navigationBarsPadding().padding(horizontal=16.dp,vertical=8.dp).fillMaxWidth(),shape=RoundedCornerShape(28.dp),
-        color=MaterialTheme.colorScheme.surface.copy(alpha=.88f),border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant.copy(alpha=.7f)),shadowElevation=8.dp) {
-        Row(Modifier.background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.surface.copy(alpha=.85f),MaterialTheme.colorScheme.secondaryContainer.copy(alpha=.15f)))).padding(8.dp),horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+    GlassSurface(Modifier.navigationBarsPadding().padding(horizontal=16.dp,vertical=8.dp).fillMaxWidth()) {
+        Row(Modifier.padding(8.dp),horizontalArrangement=Arrangement.spacedBy(4.dp)) {
             items.forEach{(key,label,icon)->
                 val selected=screen==key
                 val color by animateColorAsState(if(selected)MaterialTheme.colorScheme.primaryContainer else Color.Transparent,tween(Brand.Motion),label="navigation")
@@ -190,6 +229,13 @@ private val HouseTypography=Typography(
             "list"->{for(y in listOf(6f,12f,18f)){line(8f,y,21f,y);drawCircle(color,1.2f*s,Offset(3f*s,y*s))}}
             "chart"->{line(4f,20f,21f,20f);line(6f,16f,6f,11f);line(12f,16f,12f,5f);line(18f,16f,18f,8f)}
             "settings"->{for(y in listOf(6f,12f,18f))line(3f,y,21f,y);for((x,y)in listOf(8f to 6f,16f to 12f,10f to 18f))drawCircle(color,2.5f*s,Offset(x*s,y*s),style=Stroke(1.8f*s))}
+            "cart"->{path(2f,4f,5f,4f,8f,16f,19f,16f,22f,7f,6f,7f);drawCircle(color,1.5f*s,Offset(9f*s,21f*s));drawCircle(color,1.5f*s,Offset(18f*s,21f*s))}
+            "health"->{path(3f,8f,21f,8f,21f,21f,3f,21f,3f,8f);path(8f,8f,8f,4f,16f,4f,16f,8f);line(12f,11f,12f,18f);line(8f,14.5f,16f,14.5f)}
+            "book"->{path(12f,5f,3f,3f,3f,19f,12f,21f,21f,19f,21f,3f,12f,5f,12f,21f)}
+            "car"->{path(3f,18f,3f,11f,6f,5f,18f,5f,21f,11f,21f,18f,3f,18f);line(3f,11f,21f,11f);line(5f,18f,5f,21f);line(19f,18f,19f,21f);line(6f,14f,8f,14f);line(16f,14f,18f,14f)}
+            "star"->{path(12f,2f,15f,8f,22f,9f,17f,14f,18f,21f,12f,18f,6f,21f,7f,14f,2f,9f,9f,8f,12f,2f)}
+            "shirt"->{path(8f,3f,3f,6f,1f,12f,6f,13f,6f,21f,18f,21f,18f,13f,23f,12f,21f,6f,16f,3f,14f,6f,10f,6f,8f,3f)}
+            "bill"->{path(5f,2f,19f,2f,19f,22f,16f,20f,12f,22f,8f,20f,5f,22f,5f,2f);line(8f,7f,16f,7f);line(8f,11f,16f,11f);line(8f,15f,13f,15f)}
             "wallet"->{path(3f,7f,3f,20f,21f,20f,21f,7f,3f,7f,17f,3f,17f,7f);path(21f,11f,15f,11f,15f,16f,21f,16f)}
             "calendar"->{path(3f,6f,21f,6f,21f,21f,3f,21f,3f,6f);line(3f,10f,21f,10f);line(8f,3f,8f,8f);line(16f,3f,16f,8f)}
             "budget"->{drawCircle(color,9f*s,Offset(12f*s,12f*s),style=Stroke(1.8f*s));path(12f,3f,12f,12f,21f,12f)}
