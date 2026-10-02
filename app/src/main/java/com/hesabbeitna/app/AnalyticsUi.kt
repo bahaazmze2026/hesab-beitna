@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -28,22 +29,22 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 private fun decimalAmount(value:Long)=BigDecimal.valueOf(value,2).toPlainString()
-@Composable fun AnalyticsScreen(data:Household,period:Finance.Period,model:AppModel) {
+@Composable fun AnalyticsScreen(data:Household,period:Finance.Period,model:AppModel,initialTab:String="overview") {
     var loaded by remember(data,period.start,period.end){mutableStateOf<Analytics?>(null)}
     LaunchedEffect(data,period.start,period.end) {
         loaded=withContext(Dispatchers.Default){Analytics(data,period).also{it.signals()}}
     }
     val report=loaded
     if(report==null){Page{ScreenTitle("جارٍ تحليل السجل");CircularProgressIndicator()};return}
-    var tab by rememberSaveable{mutableStateOf("overview")}
+    var tab by rememberSaveable{mutableStateOf(initialTab)}
+    val tabState=rememberSaveableStateHolder()
     var categoryId by rememberSaveable(period.start){mutableStateOf<String?>(null)}
     var evidenceTitle by remember{mutableStateOf("")}
     var evidenceIds by remember{mutableStateOf<List<String>>(emptyList())}
     var evidenceOpen by remember{mutableStateOf(false)}
     fun evidence(title:String,rows:List<Transaction>){evidenceTitle=title;evidenceIds=rows.map{it.id};evidenceOpen=true}
     val tabs=listOf(Triple("overview","نظرة عامة","home"),Triple("spending","تفاصيل الإنفاق","list"),Triple("comparison","المقارنات","chart"),Triple("planning","خطة التوفير","budget"))
-    Page {
-        ScreenTitle("تحليلات واضحة","مساعد البيت المالي • ${periodLabel(period)}")
+    Column(Modifier.fillMaxSize()) {
         GlassSurface(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(8.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
                 tabs.chunked(2).forEach {row->Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -52,6 +53,8 @@ private fun decimalAmount(value:Long)=BigDecimal.valueOf(value,2).toPlainString(
                 }}
             }
         }
+    tabState.SaveableStateProvider(tab){Page {
+        ScreenTitle("تحليلات واضحة","مساعد البيت المالي • ${periodLabel(period)}")
         if(report.coveredDays==0L)Hint("الفترة خارج الأيام المسجلة حتى اليوم؛ لا يمكن استنتاج نمط للصرف منها")
         else Hint("الأرقام من السجل المتاح خلال ${report.coveredDays} يومًا. اليوم بلا عملية لا يثبت عدم الصرف.")
         when(tab) {
@@ -113,6 +116,7 @@ private fun decimalAmount(value:Long)=BigDecimal.valueOf(value,2).toPlainString(
             "planning"->SavingPlanner(report,model)
         }
         Spacer(Modifier.height(80.dp))
+    }}
     }
     categoryId?.let{id->val cat=report.categories.firstOrNull{it.id==id}?:Analytics.emptyCategory(id)
         DialogForm("تحليل ${data.category(id)}",{categoryId=null}) {

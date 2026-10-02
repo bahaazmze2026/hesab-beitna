@@ -28,7 +28,7 @@ class AnalyticsUiTest {
     private val context get()=instrumentation.targetContext
     private fun snapshot()=runBlocking{Repository(context).load()}
     private fun waitText(text:String){compose.waitUntil(30_000){compose.onAllNodesWithText(text,substring=true).fetchSemanticsNodes().isNotEmpty()}}
-    private fun activate(tag:String)=compose.onNodeWithTag(tag).performScrollTo().performSemanticsAction(SemanticsActions.OnClick){it()}
+    private fun activate(tag:String){val node=compose.onNodeWithTag(tag);if(tag !in listOf("analysis-overview","analysis-spending","analysis-comparison","analysis-planning"))node.performScrollTo();node.performSemanticsAction(SemanticsActions.OnClick){it()}}
     private fun capture(name:String,scenario:ActivityScenario<MainActivity>) {
         compose.waitForIdle();val rendered=CountDownLatch(1)
         scenario.onActivity {activity->

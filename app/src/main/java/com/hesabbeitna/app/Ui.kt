@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,6 +22,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -40,12 +43,22 @@ import java.time.temporal.ChronoUnit
     val message by model.message.collectAsStateWithLifecycle()
     val preview by model.restorePreview.collectAsStateWithLifecycle()
     val snack = remember { SnackbarHostState() }
-    LaunchedEffect(message) { message?.let { snack.showSnackbar(it); model.clearMessage() } }
+    LaunchedEffect(message) { message?.let { if(it.isNotBlank())snack.showSnackbar(it); model.clearMessage() } }
     var screen by rememberSaveable { mutableStateOf("home") }
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
     var editingId by rememberSaveable { mutableStateOf<String?>(null) }
     var payingId by rememberSaveable { mutableStateOf<String?>(null) }
     var deleting by remember { mutableStateOf<Transaction?>(null) }
+    var undoing by remember { mutableStateOf<Transaction?>(null) }
+    var quickAdd by rememberSaveable { mutableStateOf(false) }
+    var initialType by rememberSaveable { mutableStateOf(TxType.EXPENSE) }
+    var searchHit by remember { mutableStateOf<SearchHit?>(null) }
+    var searchOrigin by rememberSaveable { mutableStateOf("home") }
+    val screenState=rememberSaveableStateHolder()
+    LaunchedEffect(undoing){undoing?.let{tx->
+        if(snack.showSnackbar("تم حذف العملية",actionLabel="تراجع",duration=SnackbarDuration.Long)==SnackbarResult.ActionPerformed)model.restoreTransaction(tx)
+        undoing=null
+    }}
     var monthOffset by rememberSaveable { mutableIntStateOf(0) }
     val snapshot = data
     val editing=snapshot?.transactions?.firstOrNull{it.id==editingId}
@@ -74,47 +87,65 @@ import java.time.temporal.ChronoUnit
     val base = snapshot.cycle()
     val selected = Finance.anchor(java.time.YearMonth.from(base.start).plusMonths(monthOffset.toLong()),snapshot.prefs.salaryDay)
     val period = snapshot.cycle(selected)
-    BackHandler(enabled=screen!="home") {screen="home"}
-    fun addExpense() { editingId=null;payingId=null;dialog="transaction" }
+    BackHandler(enabled=screen!="home") {screen=if(screen=="search")searchOrigin else "home"}
+    fun addTransaction(type:TxType) { editingId=null;payingId=null;initialType=type;dialog="transaction" }
+    fun addExpense() {addTransaction(TxType.EXPENSE)}
+    fun openSearch(){if(screen!="search")searchOrigin=screen;screen="search"}
+    fun editTransaction(tx:Transaction){searchHit=null;editingId=tx.id;payingId=null;dialog=if(tx.type==TxType.REFUND)"refund"else"transaction"}
+    fun payDue(due:Due){searchHit=null;payingId=due.id;editingId=null;initialType=TxType.EXPENSE;dialog="transaction"}
     Scaffold(snackbarHost={SnackbarHost(snack)},containerColor=MaterialTheme.colorScheme.background,
-        topBar={BrandHeader(if(screen in listOf("budget","dues","accounts")) {{screen="home"}} else null)},
+        topBar={BrandHeader(if(screen in listOf("budget","dues","accounts","settings","search")) {{screen=if(screen=="search")searchOrigin else "more"}} else null,search={openSearch()})},
         bottomBar={GlassNavigation(screen){screen=it}},
-        floatingActionButton={if(screen!="settings"&&screen!="home") ExtendedFloatingActionButton(onClick={addExpense()},
-            modifier=Modifier.testTag("expense-fab"),containerColor=MaterialTheme.colorScheme.primary,contentColor=MaterialTheme.colorScheme.onPrimary,
-            shape=Brand.Card,icon={ToolIcon("plus",MaterialTheme.colorScheme.onPrimary)},text={Text("إضافة مصروف")})}
+        floatingActionButton={FloatingActionButton(onClick={quickAdd=true},modifier=Modifier.testTag("quick-add").semantics{contentDescription="إضافة عملية"},
+            containerColor=MaterialTheme.colorScheme.primary,contentColor=MaterialTheme.colorScheme.onPrimary,shape=Brand.Input){ToolIcon("plus",MaterialTheme.colorScheme.onPrimary);}}
     ) { padding ->
         Column(Modifier.padding(padding).consumeWindowInsets(padding)) {
             if(busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-            if(screen in listOf("home","transactions","budget","analytics")) Row(Modifier.fillMaxWidth().padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically) {
+            if(screen in listOf("home","transactions","budget","analytics","plan")) Row(Modifier.fillMaxWidth().padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically) {
                 TextButton(onClick={monthOffset--}) {Text("السابق")}
                 Column(Modifier.weight(1f),horizontalAlignment=Alignment.CenterHorizontally) {
                     Text(periodLabel(period),fontSize=12.sp); if(monthOffset!=0) TextButton(onClick={monthOffset=0}) {Text("الدورة الحالية")}
                 }
                 TextButton(onClick={monthOffset++},enabled=monthOffset<0) {Text("التالي")}
             }
-            when(screen) {
-                "home" -> HomeScreen(snapshot,period,{screen="analytics"},{screen="dues"},{screen="budget"},{screen="accounts"},{addExpense()})
+            screenState.SaveableStateProvider(screen){when(screen) {
+                "home" -> HomeScreen(snapshot,period,{screen="analytics"},{screen="dues"},{screen="budget"},{screen="accounts"},{addExpense()},incomeAdd={addTransaction(TxType.INCOME)},transferAdd={addTransaction(TxType.TRANSFER)})
                 "analytics" -> AnalyticsScreen(snapshot,period,model)
+                "plan" -> Column{Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly){TextButton(onClick={screen="budget"}){Text("الميزانيات")};TextButton(onClick={screen="dues"}){Text("الالتزامات")};TextButton(onClick={screen="accounts"}){Text("هدف الادخار")}};AnalyticsScreen(snapshot,period,model,"planning")}
+                "more" -> MoreScreen{key->when(key){
+                    "more-categories"->dialog="categories";"more-backup"->dialog="backup";"more-restore"->dialog="restore"
+                    "more-export"->dialog="export";else->screen=key.removePrefix("more-")
+                }}
+                "search" -> SearchScreen(snapshot,{hit->if(hit.kind=="action"){
+                    if(hit.id in listOf("categories","backup","restore","export"))dialog=hit.id else screen=hit.id
+                }else searchHit=hit},{screen=it})
                 "transactions" -> TransactionsScreen(snapshot,period,
-                    edit={editingId=it.id;payingId=null;dialog=if(it.type==TxType.REFUND)"refund"else"transaction"},delete={deleting=it},refund={editingId=it.id;dialog="refund"})
+                    edit={editTransaction(it)},delete={deleting=it},refund={editingId=it.id;dialog="refund"})
                 "budget" -> BudgetScreen(snapshot,period,model)
-                "dues" -> DuesScreen(snapshot,model,{payingId=it.id;editingId=null;dialog="transaction"})
+                "dues" -> DuesScreen(snapshot,model,{payDue(it)})
                 "accounts" -> AccountsScreen(snapshot,model,{dialog="account"})
                 "settings" -> SettingsScreen(snapshot,model,canLock,notifications,
                     accounts={screen="accounts"},budget={screen="budget"},dues={screen="dues"},backup={dialog="backup"},restore={dialog="restore"},csv={export("csv","",period)},pdf={export("pdf","",period)})
-            }
+            }}
             Spacer(Modifier.height(4.dp))
         }
     }
     when(dialog) {
-        "transaction" -> TransactionForm(snapshot,model,editing,paying,{dialog=null})
+        "transaction" -> TransactionForm(snapshot,model,editing,paying,{dialog=null},initialType)
+        "categories" -> CategoriesForm(snapshot,model,{dialog=null})
+        "export" -> AlertDialog(onDismissRequest={dialog=null},title={Text("تصدير الدورة المختارة")},
+            text={Text("${periodLabel(period)}\nالملفات غير مشفرة وتحتوي بيانات مالية. اختَر مكان حفظ تثق به.")},
+            confirmButton={Row{TextButton(onClick={dialog=null;export("csv","",period)}){Text("CSV")};TextButton(onClick={dialog=null;export("pdf","",period)}){Text("PDF")}}},
+            dismissButton={TextButton(onClick={dialog=null}){Text("إلغاء")}})
         "refund" -> editing?.let { RefundForm(snapshot,model,it,{dialog=null}) }
         "account" -> AccountForm(snapshot,model,{dialog=null})
         "backup" -> BackupForm(true,{dialog=null}) {password->dialog=null;export("backup",password,period)}
         "restore" -> BackupForm(false,{dialog=null}) {password->dialog=null;restore(password)}
     }
     deleting?.let { tx -> AlertDialog(onDismissRequest={deleting=null},title={Text("حذف العملية؟")},text={Text("${typeLabel(tx.type)} بقيمة ${money(tx.amount)}. ستُحدث الأرصدة والتحليلات.")},
-        confirmButton={TextButton(onClick={model.deleteTransaction(tx.id);deleting=null},enabled=!busy) {Text("حذف")}},dismissButton={TextButton(onClick={deleting=null}) {Text("إلغاء")}}) }
+        confirmButton={TextButton(onClick={model.deleteTransaction(tx.id,""){success->if(success)undoing=tx};deleting=null},enabled=!busy) {Text("حذف")}},dismissButton={TextButton(onClick={deleting=null}) {Text("إلغاء")}}) }
+    if(quickAdd)QuickAddSheet({quickAdd=false}){key->quickAdd=false;when(key){"add-income"->addTransaction(TxType.INCOME);"add-transfer"->addTransaction(TxType.TRANSFER);"add-payment"->screen="dues";else->addExpense()}}
+    searchHit?.let{SearchDetail(snapshot,it,{searchHit=null},{editTransaction(it)},{payDue(it)})}
     preview?.let { RestoreConfirmation(it,busy,{model.cancelRestore()},{model.confirmRestore()}) }
 }
 
@@ -154,18 +185,22 @@ import java.time.temporal.ChronoUnit
     } }
 }
 
-@Composable fun HomeScreen(data:Household,period:Finance.Period,analytics:()->Unit,dues:()->Unit,budgetOpen:()->Unit,accounts:()->Unit,add:()->Unit) {
+@Composable fun HomeScreen(data:Household,period:Finance.Period,analytics:()->Unit,dues:()->Unit,budgetOpen:()->Unit,accounts:()->Unit,add:()->Unit,incomeAdd:()->Unit=add,transferAdd:()->Unit=add) {
     val entries=remember(data.transactions){data.entries()}
     val income=Finance.income(entries,period);val expense=Finance.expense(entries,period)
     val budget=data.budget(period)
     val top=Finance.categories(entries,period).maxByOrNull{it.value}
+    val committed=data.dues.filter{LocalDate.parse(it.date)<period.end}.sumOf{data.remaining(it)}
+    val available=budget?.let{it.amount-expense-committed}
     Page {
         ScreenTitle("كل شيء أوضح", "نظرة هادئة على أموال بيتك")
-        Surface(shape=Brand.Card,color=MaterialTheme.colorScheme.surface,
-            border=androidx.compose.foundation.BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant)) {
+        GlassSurface(Modifier.fillMaxWidth()) {
             Column(Modifier.fillMaxWidth().padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
-                Text("المتبقي من دخل الدورة",style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(money(income-expense),style=MaterialTheme.typography.displaySmall,color=if(income>=expense)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                Text(if(available!=null)"المتاح من الميزانية بعد الالتزامات"else"أرصدة حساباتك الحالية",style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                val headline=available?:data.accounts.sumOf{data.balance(it)}
+                Text(money(headline),style=MaterialTheme.typography.displaySmall,color=if(headline>=0)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                Hint(if(available!=null)"ميزانية الدورة − الصرف الصافي − الالتزامات غير المدفوعة حتى نهاية الدورة"else"هذا رصيد الحسابات، وليس مبلغًا حرًا للصرف. حدّد ميزانية لمعرفة المتاح بعد الالتزامات")
+                TextButton(onClick=if(available!=null)dues else budgetOpen){Text(if(available!=null)"التزامات محجوزة ${money(committed)}"else"تحديد ميزانية البيت")}
                 HorizontalDivider(color=MaterialTheme.colorScheme.primary.copy(alpha=.2f))
                 BoxWithConstraints(Modifier.fillMaxWidth()) {
                     val largeText=LocalDensity.current.fontScale>1.3f
@@ -176,10 +211,12 @@ import java.time.temporal.ChronoUnit
                         Column(Modifier.weight(1f)){CycleMetric("صافي المصروفات",expense)}
                     }
                 }
-                Hint("هذا المتبقي يخص الدورة فقط، ولا يساوي أرصدة الحسابات.")
+                Hint("الفائض المسجل ${money(income-expense)} يخص الدورة، ويختلف عن أرصدة الحسابات.")
             }
         }
         PrimaryAction("إضافة مصروف",add,modifier=Modifier.testTag("expense-fab"))
+        ActionGrid(listOf(HubAction("home-income","إضافة دخل","wallet"),HubAction("home-transfer","تحويل","transfer"),
+            HubAction("home-pay","سداد فاتورة","bill"),HubAction("home-accounts","الحسابات","wallet"))){key->when(key){"home-income"->incomeAdd();"home-transfer"->transferAdd();"home-pay"->dues();else->accounts()}}
         Panel("ميزانية البيت") {
             if(budget==null)Hint("حدد ميزانية لتعرف المتاح للصرف") else {
                 AmountLine("المتبقي من الميزانية",budget.amount-expense,if(budget.amount>=expense)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)

@@ -60,10 +60,10 @@ private val LightPalette=lightColorScheme(
 private val DarkPalette=darkColorScheme(
     primary=Color(0xFF97D5AB),onPrimary=Color(0xFF103820),primaryContainer=Color(0xFF254733),onPrimaryContainer=Color(0xFFD8F3E0),
     secondary=Brand.Orange,onSecondary=Brand.Brown,secondaryContainer=Color(0xFF58392B),onSecondaryContainer=Color(0xFFFFDCC2),
-    tertiary=Color(0xFFF6C779),onTertiary=Color(0xFF482E00),background=Color(0xFF211A17),onBackground=Brand.Ivory,
-    surface=Color(0xFF2E2520),onSurface=Brand.Ivory,surfaceVariant=Color(0xFF3B3029),onSurfaceVariant=Color(0xFFD6BFB1),
-    outline=Color(0xFFAE9587),outlineVariant=Color(0xFF59473D),error=Color(0xFFFFB3B8),onError=Color(0xFF590D1C),
-    surfaceDim=Color(0xFF211A17),surfaceBright=Color(0xFF3B3029),surfaceContainerLowest=Color(0xFF1A1412),surfaceContainerLow=Color(0xFF2E2520),surfaceContainer=Color(0xFF2E2520),surfaceContainerHigh=Color(0xFF3B3029),surfaceContainerHighest=Color(0xFF493A31),inverseSurface=Brand.Ivory,inverseOnSurface=Brand.Brown,inversePrimary=Brand.Green,
+    tertiary=Color(0xFFF6C779),onTertiary=Color(0xFF482E00),background=Color.Black,onBackground=Color(0xFFF5F5F5),
+    surface=Color(0xFF111111),onSurface=Color(0xFFF5F5F5),surfaceVariant=Color(0xFF191919),onSurfaceVariant=Color(0xFFB8B8B8),
+    outline=Color(0xFF888888),outlineVariant=Color(0xFF292929),error=Color(0xFFFFB3B8),onError=Color(0xFF590D1C),
+    surfaceDim=Color.Black,surfaceBright=Color(0xFF292929),surfaceContainerLowest=Color.Black,surfaceContainerLow=Color(0xFF111111),surfaceContainer=Color(0xFF191919),surfaceContainerHigh=Color(0xFF222222),surfaceContainerHighest=Color(0xFF292929),inverseSurface=Color(0xFFF5F5F5),inverseOnSurface=Color(0xFF111111),inversePrimary=Brand.Green,
     errorContainer=Color(0xFF502129),onErrorContainer=Color(0xFFFFDADC))
 private val ArabicFont=FontFamily(Font(R.font.noto_sans_arabic))
 private fun type(size:Int,line:Int,weight:FontWeight=FontWeight.Normal)=TextStyle(fontFamily=ArabicFont,fontWeight=weight,fontSize=size.sp,lineHeight=line.sp)
@@ -156,16 +156,17 @@ private val HouseTypography=Typography(
         }
     }
 }
-@Composable fun BrandHeader(back:(()->Unit)?=null) {
+@Composable fun BrandHeader(back:(()->Unit)?=null,search:(()->Unit)?=null) {
     Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal=20.dp,vertical=12.dp),
         verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-        Mascot(60.dp)
+        Mascot(44.dp)
         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(2.dp)) {
-            Text(stringResource(R.string.app_name),style=MaterialTheme.typography.headlineMedium,
+            Text(stringResource(R.string.app_name),style=MaterialTheme.typography.titleLarge,
                 modifier=Modifier.testTag("app-name").semantics{heading()})
             Hint("بيتك، وحسابك واضح")
         }
         if(back!=null) TextButton(onClick=back,modifier=Modifier.heightIn(min=48.dp)){Text("رجوع")}
+        if(search!=null)IconButton(onClick=search,modifier=Modifier.testTag("global-search").semantics{contentDescription="البحث في كل التطبيق"}){ToolIcon("search")}
     }
 }
 /** Android 12+ blurs the real content behind modal windows when the device supports it. */
@@ -191,10 +192,11 @@ private val HouseTypography=Typography(
 @Composable fun GlassSurface(modifier:Modifier=Modifier,content:@Composable ()->Unit) {
     val colors=MaterialTheme.colorScheme
     val glass=LocalAppearance.current.glass
+    val black=colors.background==Color.Black
     Box(modifier.clip(Brand.Card).background(colors.surface)) {
         if(glass)Canvas(Modifier.matchParentSize().blur(24.dp)) {
-            drawCircle(Brand.Orange.copy(alpha=.20f),size.width*.5f,Offset(size.width*.95f,size.height*.10f))
-            drawCircle(colors.primary.copy(alpha=.14f),size.width*.45f,Offset(0f,size.height*.9f))
+            drawCircle((if(black)Color.White else Brand.Orange).copy(alpha=if(black).06f else .20f),size.width*.5f,Offset(size.width*.95f,size.height*.10f))
+            drawCircle((if(black)Color.White else colors.primary).copy(alpha=if(black).04f else .14f),size.width*.45f,Offset(0f,size.height*.9f))
         }
         Surface(shape=Brand.Card,color=colors.surface.copy(alpha=if(glass).66f else 1f),
             border=BorderStroke(1.dp,if(glass)colors.onSurface.copy(alpha=.14f)else colors.outlineVariant)) {
@@ -203,11 +205,11 @@ private val HouseTypography=Typography(
     }
 }
 @Composable fun GlassNavigation(screen:String,select:(String)->Unit) {
-    val items=listOf(Triple("home","الرئيسية","home"),Triple("transactions","العمليات","list"),Triple("analytics","التحليلات","chart"),Triple("settings","الإعدادات","settings"))
-    GlassSurface(Modifier.navigationBarsPadding().padding(horizontal=16.dp,vertical=8.dp).fillMaxWidth()) {
-        Row(Modifier.padding(8.dp),horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+    val items=listOf(Triple("home","الرئيسية","home"),Triple("transactions","العمليات","list"),Triple("analytics","التحليلات","chart"),Triple("plan","الخطة","budget"),Triple("more","المزيد","more"))
+    GlassSurface(Modifier.navigationBarsPadding().padding(horizontal=12.dp,vertical=8.dp).fillMaxWidth()) {
+        Row(Modifier.padding(4.dp),horizontalArrangement=Arrangement.spacedBy(2.dp)) {
             items.forEach{(key,label,icon)->
-                val selected=screen==key
+                val selected=screen==key||(key=="more"&&screen in listOf("settings","accounts","budget","dues"))
                 val color by animateColorAsState(if(selected)MaterialTheme.colorScheme.primaryContainer else Color.Transparent,tween(Brand.Motion),label="navigation")
                 Surface(onClick={select(key)},modifier=Modifier.weight(1f).heightIn(min=64.dp).testTag("nav-$key").semantics{this.selected=selected;role=Role.Tab},shape=RoundedCornerShape(20.dp),color=color) {
                     Column(Modifier.padding(vertical=8.dp,horizontal=2.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(4.dp)) {
@@ -240,6 +242,10 @@ private val HouseTypography=Typography(
             "calendar"->{path(3f,6f,21f,6f,21f,21f,3f,21f,3f,6f);line(3f,10f,21f,10f);line(8f,3f,8f,8f);line(16f,3f,16f,8f)}
             "budget"->{drawCircle(color,9f*s,Offset(12f*s,12f*s),style=Stroke(1.8f*s));path(12f,3f,12f,12f,21f,12f)}
             "plus"->{line(4f,12f,20f,12f);line(12f,4f,12f,20f)}
+            "search"->{drawCircle(color,7f*s,Offset(10f*s,10f*s),style=Stroke(1.8f*s));line(15f,15f,22f,22f)}
+            "more"->{for(x in listOf(5f,12f,19f))drawCircle(color,1.8f*s,Offset(x*s,12f*s))}
+            "transfer"->{path(3f,7f,21f,7f,17f,3f);path(21f,17f,3f,17f,7f,21f)}
+            "shield"->{path(12f,2f,3f,6f,4f,16f,12f,22f,20f,16f,21f,6f,12f,2f);path(8f,12f,11f,15f,17f,9f)}
             "close"->{line(6f,6f,18f,18f);line(18f,6f,6f,18f)}
             "down"->path(6f,9f,12f,15f,18f,9f)
             "check"->path(4f,12f,9f,17f,20f,6f)

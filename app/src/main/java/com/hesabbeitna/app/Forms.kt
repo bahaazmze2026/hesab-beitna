@@ -13,15 +13,16 @@ import java.time.LocalDate
 
 private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString()
 
-@Composable fun TransactionForm(data: Household, model: AppModel, editing: Transaction?, due: Due?, dismiss: ()->Unit) {
+@Composable fun TransactionForm(data: Household, model: AppModel, editing: Transaction?, due: Due?, dismiss: ()->Unit,initialType:TxType=TxType.EXPENSE) {
     val id=rememberSaveable {editing?.id?:newId()}
     val feeId=rememberSaveable {newId()}
-    var type by rememberSaveable {mutableStateOf(editing?.type?:TxType.EXPENSE)}
+    var type by rememberSaveable {mutableStateOf(editing?.type?:initialType)}
     var amount by rememberSaveable {mutableStateOf(editing?.amount?.let {amountText(it)}?:due?.let {amountText(data.remaining(it))}?:"")}
     var date by rememberSaveable {mutableStateOf(editing?.date?:today())}
-    var account by rememberSaveable {mutableStateOf(editing?.accountId?:data.prefs.defaultAccount?:data.accounts.first {!it.archived}.id)}
+    val recent=data.transactions.filter{it.type==initialType&&data.accounts.any{a->a.id==it.accountId&&!a.archived}}.maxByOrNull{it.created}
+    var account by rememberSaveable {mutableStateOf(editing?.accountId?:recent?.accountId?:data.prefs.defaultAccount?:data.accounts.first {!it.archived}.id)}
     var destination by rememberSaveable {mutableStateOf(editing?.destinationId?:data.accounts.firstOrNull {it.id!=account&&!it.archived}?.id?:"")}
-    var category by rememberSaveable {mutableStateOf(editing?.categoryId?:due?.categoryId?:data.categories.first { !it.income&&!it.archived }.id)}
+    var category by rememberSaveable {mutableStateOf(editing?.categoryId?:due?.categoryId?:recent?.categoryId?.takeIf{id->data.categories.any{it.id==id&&!it.archived&&it.income==(initialType==TxType.INCOME)}}?:data.categories.firstOrNull { it.income==(initialType==TxType.INCOME)&&!it.archived }?.id?:"")}
     var payment by rememberSaveable {mutableStateOf(editing?.payment?:data.accounts.firstOrNull {it.id==account}?.kind?:"نقد")}
     var note by rememberSaveable {mutableStateOf(editing?.note?:due?.title?:"")}
     var fee by rememberSaveable {mutableStateOf("0")}
@@ -38,11 +39,12 @@ private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString(
         model.saveTransaction(t,feeAmount,feeId) {success->if(success)dismiss()else submitted=false}
     }
     DialogForm(if(editing!=null) "تعديل العملية" else if(due!=null) "سداد ${due.title}" else "تسجيل عملية",dismiss) {
-        if(due==null && editing==null) Choice("النوع",type.name,listOf(TxType.EXPENSE.name to "مصروف",TxType.INCOME.name to "دخل",TxType.TRANSFER.name to "تحويل بين حساباتي")) {key->
-            type=TxType.valueOf(key)
+        Field(amount,{amount=it;amountError=null},"المبلغ — جنيه",true,error=amountError)
+        if(due==null && editing==null) ActionGrid(listOf(
+            HubAction("type-expense","مصروف","cart"),HubAction("type-income","دخل","wallet"),HubAction("type-transfer","تحويل","transfer")),selected="type-${type.name.lowercase()}") {key->
+            type=when(key){"type-income"->TxType.INCOME;"type-transfer"->TxType.TRANSFER;else->TxType.EXPENSE}
             category=data.categories.firstOrNull {it.income==(type==TxType.INCOME)&&!it.archived}?.id?:""
         } else Hint("${typeLabel(type)}${if(due!=null) " • المتبقي ${money(data.remaining(due))}" else ""}")
-        Field(amount,{amount=it;amountError=null},"المبلغ — جنيه",true,error=amountError)
         if(type!=TxType.TRANSFER) {
             val cats=data.categories.filter {it.income==(type==TxType.INCOME)&&(!it.archived||it.id==category)}
             if(due==null && editing?.dueId==null) CategoryChoice(cats,category,data.transactions,model) {category=it}
