@@ -18,11 +18,17 @@ android {
         applicationId = "com.hesabbeitna.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.4.0"
+        versionCode = providers.gradleProperty("previewVersionCode").orNull?.toInt() ?: 7
+        versionName = "1.5.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
+        getByName("debug") {
+            storeFile = rootProject.file("tools/preview-signing/preview.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (releaseKeys.isNotEmpty()) create("owner") {
             storeFile = rootProject.file(releaseKeys.getProperty("storeFile"))
             storePassword = releaseKeys.getProperty("storePassword")

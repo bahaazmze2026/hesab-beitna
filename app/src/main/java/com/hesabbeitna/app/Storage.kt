@@ -72,7 +72,7 @@ class Repository(context: Context) {
         if(rows.isEmpty()) Household() else {
             require(rows.map { it.id } == rows.indices.toList())
             val bytes = ByteArrayOutputStream().also { output -> rows.forEach { output.write(it.payload) } }.toByteArray()
-            codec.decodeFromString<Household>(DeviceCipher.decrypt(bytes).decodeToString()).validate()
+            codec.decodeFromString<Household>(DeviceCipher.decrypt(bytes).decodeToString()).validate().copy(schema = 2)
         }
     } }
     suspend fun save(data: Household) = mutex.withLock { withContext(Dispatchers.IO) {
@@ -94,6 +94,6 @@ object Backup {
     }
     fun decrypt(bytes: ByteArray, password: CharArray): Household {
         val plaintext = BackupCrypto.decrypt(bytes,password)
-        return try { codec.decodeFromString<Household>(plaintext.decodeToString()).validate() } finally { plaintext.fill(0) }
+        return try { codec.decodeFromString<Household>(plaintext.decodeToString()).validate().copy(schema = 2) } finally { plaintext.fill(0) }
     }
 }

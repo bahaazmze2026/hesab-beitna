@@ -78,7 +78,7 @@ private fun decimalAmount(value:Long)=BigDecimal.valueOf(value,2).toPlainString(
                     report.availableDaily?.let{Text("المتاح يوميًا بعد حجز الالتزامات: ${money(it)} خلال ${report.daysLeft} يومًا بعد اليوم")}
                     if(report.availableDaily==null)Hint("حدد ميزانية للدورة ليظهر المتاح اليومي. متوسط الأيام التالية لا يشمل بقية اليوم الحالي.")
                 }
-                Panel("اسأل حساب بيتنا") {
+                Panel("اسأل Meow Budget") {
                     TextButton(onClick={tab="spending"}){Text("أكثر صنف صرفت عليه؟")}
                     TextButton(onClick={tab="comparison"}){Text("ليه الصرف اتغيّر؟")}
                     TextButton(onClick={tab="planning"}){Text("أقدر أوفّر منين؟")}

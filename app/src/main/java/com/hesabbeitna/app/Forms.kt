@@ -13,19 +13,22 @@ import java.time.LocalDate
 
 private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString()
 
-@Composable fun TransactionForm(data: Household, model: AppModel, editing: Transaction?, due: Due?, dismiss: ()->Unit,initialType:TxType=TxType.EXPENSE) {
+@Composable fun TransactionForm(data: Household, model: AppModel, editing: Transaction?, due: Due?, dismiss: ()->Unit,initialType:TxType=TxType.EXPENSE,template:QuickTemplate?=null) {
     val id=rememberSaveable {editing?.id?:newId()}
     val feeId=rememberSaveable {newId()}
     var type by rememberSaveable {mutableStateOf(editing?.type?:initialType)}
-    var amount by rememberSaveable {mutableStateOf(editing?.amount?.let {amountText(it)}?:due?.let {amountText(data.remaining(it))}?:"")}
+    var amount by rememberSaveable {mutableStateOf(editing?.amount?.let {amountText(it)}?:template?.amount?.let{amountText(it)}?:due?.let {amountText(data.remaining(it))}?:"")}
     var date by rememberSaveable {mutableStateOf(editing?.date?:today())}
     val recent=data.transactions.filter{it.type==initialType&&data.accounts.any{a->a.id==it.accountId&&!a.archived}}.maxByOrNull{it.created}
-    var account by rememberSaveable {mutableStateOf(editing?.accountId?:recent?.accountId?:data.prefs.defaultAccount?:data.accounts.first {!it.archived}.id)}
+    var account by rememberSaveable {mutableStateOf(editing?.accountId?:template?.accountId?:recent?.accountId?:data.prefs.defaultAccount?:data.accounts.first {!it.archived}.id)}
     var destination by rememberSaveable {mutableStateOf(editing?.destinationId?:data.accounts.firstOrNull {it.id!=account&&!it.archived}?.id?:"")}
-    var category by rememberSaveable {mutableStateOf(editing?.categoryId?:due?.categoryId?:recent?.categoryId?.takeIf{id->data.categories.any{it.id==id&&!it.archived&&it.income==(initialType==TxType.INCOME)}}?:data.categories.firstOrNull { it.income==(initialType==TxType.INCOME)&&!it.archived }?.id?:"")}
+    var category by rememberSaveable {mutableStateOf(editing?.categoryId?:template?.categoryId?:due?.categoryId?:recent?.categoryId?.takeIf{id->data.categories.any{it.id==id&&!it.archived&&it.income==(initialType==TxType.INCOME)}}?:data.categories.firstOrNull { it.income==(initialType==TxType.INCOME)&&!it.archived }?.id?:"")}
     var payment by rememberSaveable {mutableStateOf(editing?.payment?:data.accounts.firstOrNull {it.id==account}?.kind?:"نقد")}
-    var note by rememberSaveable {mutableStateOf(editing?.note?:due?.title?:"")}
+    var note by rememberSaveable {mutableStateOf(editing?.note?:template?.note?:due?.title?:"")}
     var fee by rememberSaveable {mutableStateOf("0")}
+    val templateKey=rememberSaveable{newId()}
+    var saveAsTemplate by rememberSaveable{mutableStateOf(false)}
+    var templateTitle by rememberSaveable{mutableStateOf(template?.title?:"")}
     var details by rememberSaveable {mutableStateOf(editing!=null||due!=null)}
     var error by remember {mutableStateOf<String?>(null)}
     var amountError by remember {mutableStateOf<String?>(null)}
@@ -36,7 +39,7 @@ private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString(
     var submitted by remember {mutableStateOf(false)}
     fun submit(t:Transaction,feeAmount:Long) {
         submitted=true
-        model.saveTransaction(t,feeAmount,feeId) {success->if(success)dismiss()else submitted=false}
+        model.saveTransaction(t,feeAmount,feeId,template=if(saveAsTemplate&&t.type in listOf(TxType.EXPENSE,TxType.INCOME))QuickTemplate(templateKey,templateTitle.trim(),t.type,t.amount,t.accountId,requireNotNull(t.categoryId),t.note)else null) {success->if(success)dismiss()else submitted=false}
     }
     DialogForm(if(editing!=null) "تعديل العملية" else if(due!=null) "سداد ${due.title}" else "تسجيل عملية",dismiss) {
         Field(amount,{amount=it;amountError=null},"المبلغ — جنيه",true,error=amountError)
@@ -66,8 +69,13 @@ private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString(
             Choice("طريقة الدفع",payment,listOf("نقد","حساب بنكي","محفظة","بطاقة","أخرى").map {it to it}) {payment=it}
             Field(note,{note=it.take(500)},"ملاحظة اختيارية")
         } else Hint("التاريخ $date • $payment")
+        if(editing==null&&due==null&&type in listOf(TxType.EXPENSE,TxType.INCOME)&&data.templates.size<100) {
+            Row { Checkbox(checked=saveAsTemplate,onCheckedChange={saveAsTemplate=it});Text("حفظ نسخة كقالب سريع",modifier=Modifier.padding(top=12.dp)) }
+            if(saveAsTemplate)Field(templateTitle,{templateTitle=it.take(60)},"اسم القالب")
+        }
         ErrorText(error)
         Button(onClick={try {
+            if(saveAsTemplate&&type in listOf(TxType.EXPENSE,TxType.INCOME))require(templateTitle.isNotBlank()){"أدخل اسم القالب"}
             error=null
             val value=runCatching{Finance.money(amount)}.getOrNull()
             amountError=if(value==null)"أدخل مبلغًا صالحًا، بحد أقصى خانتين عشريتين"else if(value<=0)"المبلغ أكبر من صفر"else null

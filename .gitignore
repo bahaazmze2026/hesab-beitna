@@ -12,3 +12,4 @@ owner-password.txt
 *.hbb
 
 .kotlin/
+!tools/preview-signing/preview.keystore

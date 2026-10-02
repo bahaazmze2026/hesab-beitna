@@ -10,7 +10,7 @@ assert 'android.permission.INTERNET' not in permissions
 application = manifest.find('application')
 assert application.attrib[android+'allowBackup'] == 'false'
 assert application.attrib[android+'supportsRtl'] == 'true'
-assert application.attrib[android+'label'] == 'حساب بيتنا'
+assert application.attrib[android+'label'] == 'Meow Budget'
 for path in (root/'app/src').rglob('*.xml'):
     ET.parse(path)
 for resource in ['notification_logo']:

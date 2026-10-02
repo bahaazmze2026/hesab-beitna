@@ -67,8 +67,8 @@ class UiSmokeTest {
     @Test fun setupExpenseEditSearchFilterAndAnalytics() {
         runBlocking{Repository(context).save(Household())}
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
-            waitText("أهلًا في حساب بيتنا");screenshot("setup",scenario)
-            compose.onNodeWithText("ابدأ حساب بيتنا").performScrollTo().performClick()
+            waitText("أهلًا في Meow Budget");screenshot("setup",scenario)
+            compose.onNodeWithText("ابدأ Meow Budget").performScrollTo().performClick()
             waitText("كل شيء أوضح");compose.onNodeWithTag("app-name").assertIsDisplayed();screenshot("home-empty",scenario)
             compose.onNodeWithTag("expense-fab").performScrollTo().performClick()
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextInput("0")

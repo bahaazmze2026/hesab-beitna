@@ -34,7 +34,7 @@ class BillWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(applicationContext,Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return Result.success()
             val intent = PendingIntent.getActivity(applicationContext,0,Intent(applicationContext,MainActivity::class.java),PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             val notification = NotificationCompat.Builder(applicationContext,"bills").setSmallIcon(R.drawable.notification_logo)
-                .setContentTitle("حساب بيتنا").setContentText("لديك التزامات قريبة أو متأخرة؛ افتح التطبيق للمراجعة")
+                .setContentTitle("Meow Budget").setContentText("لديك التزامات قريبة أو متأخرة؛ افتح التطبيق للمراجعة")
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setContentIntent(intent).setAutoCancel(true).build()
             applicationContext.getSystemService(NotificationManager::class.java).notify(25,notification)
             Result.success()

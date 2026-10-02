@@ -101,7 +101,7 @@ private val HouseTypography=Typography(
 @Composable fun AmountLine(label:String,amount:Long,color:Color=MaterialTheme.colorScheme.primary) {
     Column(verticalArrangement=Arrangement.spacedBy(4.dp)){Hint(label);Text(money(amount),style=MaterialTheme.typography.headlineMedium,color=color)}
 }
-@Composable fun Mascot(size:Dp=88.dp){Image(painterResource(R.drawable.brand_cat),"قطة حساب بيتنا تحتضن محفظة الادخار",Modifier.size(size).clip(Brand.Card))}
+@Composable fun Mascot(size:Dp=88.dp){Image(painterResource(R.drawable.brand_cat),"قطة Meow Budget تحتضن محفظة الادخار",Modifier.size(size).clip(Brand.Card))}
 @Composable fun Empty(text:String="لا توجد عمليات مسجلة في هذه الفترة") {
     Panel{Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(12.dp)) {
         Mascot(72.dp);Text(text,style=MaterialTheme.typography.titleMedium);Hint("ابدأ ببياناتك الحقيقية، أو غيّر الفترة والتصفية")
@@ -163,7 +163,7 @@ private val HouseTypography=Typography(
         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(2.dp)) {
             Text(stringResource(R.string.app_name),style=MaterialTheme.typography.titleLarge,
                 modifier=Modifier.testTag("app-name").semantics{heading()})
-            Hint("بيتك، وحسابك واضح")
+            Hint("Meow معاك، وحسابك واضح")
         }
         if(back!=null) TextButton(onClick=back,modifier=Modifier.heightIn(min=48.dp)){Text("رجوع")}
         if(search!=null)IconButton(onClick=search,modifier=Modifier.testTag("global-search").semantics{contentDescription="البحث في كل التطبيق"}){ToolIcon("search")}
@@ -250,6 +250,16 @@ private val HouseTypography=Typography(
             "down"->path(6f,9f,12f,15f,18f,9f)
             "check"->path(4f,12f,9f,17f,20f,6f)
             else->path(9f,5f,16f,12f,9f,19f)
+        }
+    }
+}
+
+/** Small brand companion: one quiet message rather than a blocking assistant. */
+@Composable fun MeowMessage(title:String,detail:String) {
+    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+        Mascot(52.dp)
+        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+            Text(title,style=MaterialTheme.typography.titleMedium);Hint(detail)
         }
     }
 }

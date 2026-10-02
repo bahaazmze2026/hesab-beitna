@@ -34,9 +34,9 @@ data class HubAction(val key:String,val title:String,val icon:String)
 @Composable fun QuickAddSheet(dismiss:()->Unit,choose:(String)->Unit) {
     ModalBottomSheet(onDismissRequest=dismiss,containerColor=MaterialTheme.colorScheme.surface) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
-            ScreenTitle("تضيف إيه؟","اختَر العملية، ثم أدخل المبلغ")
+            MeowMessage("تضيف إيه؟","اختَر العملية، ثم أدخل المبلغ")
             ActionGrid(listOf(HubAction("add-expense","مصروف","cart"),HubAction("add-income","دخل","wallet"),
-                HubAction("add-transfer","تحويل","transfer"),HubAction("add-payment","سداد فاتورة","bill")),click=choose)
+                HubAction("add-transfer","تحويل","transfer"),HubAction("add-payment","سداد فاتورة","bill"),HubAction("add-template","قوالبي السريعة","star")),click=choose)
             TextButton(onClick=dismiss,modifier=Modifier.fillMaxWidth()){Text("إغلاق")}
         }
     }
@@ -47,7 +47,7 @@ data class HubAction(val key:String,val title:String,val icon:String)
         ActionGrid(listOf(HubAction("more-accounts","الحسابات والمحافظ","wallet"),HubAction("more-budget","الميزانيات","budget"),
             HubAction("more-dues","الفواتير والأقساط","calendar"),HubAction("more-categories","الأصناف","cart"),
             HubAction("more-backup","نسخة احتياطية","shield"),HubAction("more-restore","استعادة البيانات","shield"),
-            HubAction("more-export","التقارير والتصدير","chart"),HubAction("more-settings","المظهر والإعدادات","settings")),click=open)
+            HubAction("more-export","التقارير والتصدير","chart"),HubAction("more-settings","المظهر والإعدادات","settings"),HubAction("more-templates","القوالب السريعة","star")),click=open)
         Hint("اختيار الفاتح أو الأسود والمظهر الزجاجي من المظهر والإعدادات")
         Spacer(Modifier.height(72.dp))
     }
