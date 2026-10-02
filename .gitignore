@@ -5,5 +5,8 @@ local.properties
 signing.properties
 *.jks
 *.keystore
+owner-signing/
+recovery-private.pem
+owner-password.txt
 .idea/
 *.hbb

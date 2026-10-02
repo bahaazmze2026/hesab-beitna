@@ -25,7 +25,9 @@ jobs:
       - name: Install Android SDK
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - name: Pure Java acceptance checks
-        run: bash tools/check-finance.sh
+        run: |
+          bash tools/check-finance.sh
+          python3 tools/check-project.py
       - name: Tests, lint and installable debug APK
         run: gradle --no-daemon testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
       - name: Enable emulator acceleration
@@ -45,7 +47,7 @@ jobs:
             gradle --no-daemon connectedDebugAndroidTest
             mkdir -p qa
             adb shell run-as com.hesabbeitna.app cat files/qa-dashboard.png > qa/dashboard.png
-      - name: Configure owner release signing when provided
+      - name: Build verified owner-signed APK
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
           STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
@@ -61,8 +63,23 @@ jobs:
           values = {'storeFile':'owner.jks','storePassword':os.environ['STORE_PASSWORD'],'keyAlias':os.environ['KEY_ALIAS'],'keyPassword':os.environ['KEY_PASSWORD']}
           pathlib.Path('signing.properties').write_text('\n'.join(k+'='+prop(v) for k,v in values.items()), encoding='utf-8')
           PY
-            gradle --no-daemon assembleRelease
+          elif [ -f tools/bootstrap-release-once ]; then
+            bash tools/bootstrap-signing.sh tools/signing-recovery-public.pem owner-signing
           fi
+          if [ -f signing.properties ]; then
+            gradle --no-daemon assembleRelease
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
+            mkdir -p qa
+            cp app/build/outputs/apk/release/app-release.apk qa/hesab-beitna-1.0.0.apk
+            sha256sum qa/hesab-beitna-1.0.0.apk > qa/hesab-beitna-1.0.0.sha256
+          fi
+      - uses: actions/upload-artifact@v4
+        if: success() && hashFiles('owner-signing/owner.jks') != ''
+        with:
+          name: owner-signing-encrypted
+          path: |
+            owner-signing/owner.jks
+            owner-signing/owner-password.rsa
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -76,4 +93,6 @@ jobs:
             qa/
       - name: Remove signing materials
         if: always()
-        run: rm -f owner.jks signing.properties
+        run: |
+          rm -f owner.jks signing.properties
+          rm -rf owner-signing
