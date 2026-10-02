@@ -98,10 +98,10 @@ import java.time.temporal.ChronoUnit
     Scaffold(snackbarHost={SnackbarHost(snack)},containerColor=MaterialTheme.colorScheme.background,
         topBar={BrandHeader(if(screen in listOf("budget","dues","accounts","settings","search","templates")) {{screen=if(screen=="search")searchOrigin else "more"}} else null,search={openSearch()})},
         bottomBar={LiquidNavigation(screen){screen=it}},
-        floatingActionButton={if(screen!="more")FloatingActionButton(onClick={quickAdd=true},modifier=Modifier.testTag("quick-add").semantics{contentDescription="إضافة عملية"},
+        floatingActionButton={if(screen in listOf("home","transactions","analytics","plan"))FloatingActionButton(onClick={quickAdd=true},modifier=Modifier.size(48.dp).testTag("quick-add").semantics{contentDescription="إضافة عملية"},
             containerColor=MaterialTheme.colorScheme.primary,contentColor=MaterialTheme.colorScheme.onPrimary,shape=Brand.Input){ToolIcon("plus",MaterialTheme.colorScheme.onPrimary);}}
     ) { padding ->
-        Column(Modifier.padding(padding).consumeWindowInsets(padding).padding(bottom=80.dp)) {
+        Column(Modifier.padding(padding).consumeWindowInsets(padding).testTag("screen-content")) {
             if(busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             if(screen in listOf("home","transactions","budget","analytics","plan")) Row(Modifier.fillMaxWidth().padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically) {
                 TextButton(onClick={monthOffset--}) {Text("السابق")}
