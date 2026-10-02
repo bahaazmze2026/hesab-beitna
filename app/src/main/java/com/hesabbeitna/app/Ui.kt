@@ -94,7 +94,7 @@ import java.time.temporal.ChronoUnit
             }
             when(screen) {
                 "home" -> HomeScreen(snapshot,period,{screen="analytics"},{screen="dues"},{screen="budget"},{screen="accounts"},{addExpense()})
-                "analytics" -> AnalyticsScreen(snapshot,period)
+                "analytics" -> AnalyticsScreen(snapshot,period,model)
                 "transactions" -> TransactionsScreen(snapshot,period,
                     edit={editingId=it.id;payingId=null;dialog=if(it.type==TxType.REFUND)"refund"else"transaction"},delete={deleting=it},refund={editingId=it.id;dialog="refund"})
                 "budget" -> BudgetScreen(snapshot,period,model)
@@ -213,89 +213,4 @@ import java.time.temporal.ChronoUnit
 @Composable private fun CycleMetric(label:String,amount:Long) {
     Hint(label)
     Text(money(amount),style=MaterialTheme.typography.titleLarge,color=MaterialTheme.colorScheme.onSurface)
-}
-
-@Composable fun AnalyticsScreen(data: Household,period: Finance.Period) {
-    val entries=remember(data.transactions){data.entries()}
-    val expense=Finance.expense(entries,period)
-    val ranked=Finance.categories(entries,period).entries.sortedByDescending {it.value}
-    val counts=Finance.counts(entries,period).entries.sortedByDescending {it.value}
-    val now=Finance.min(LocalDate.now(),period.end.minusDays(1))
-    val windows=Finance.comparison(period,now,data.prefs.salaryDay)
-    val comparable=!windows[1].start.isBefore(LocalDate.parse(data.prefs.trackingStart))
-    val current=Finance.expense(entries,windows[0]); val previous=Finance.expense(entries,windows[1])
-    val coveredStart=Finance.max(period.start,LocalDate.parse(data.prefs.trackingStart))
-    val coveredEnd=Finance.min(period.end,LocalDate.now().plusDays(1))
-    val days=ChronoUnit.DAYS.between(coveredStart,coveredEnd).coerceAtLeast(0)
-    val outstanding=data.dues.filter {LocalDate.parse(it.date)<period.end}.sumOf {data.remaining(it)}
-    val forecast=Finance.forecast(entries,period,LocalDate.parse(data.prefs.trackingStart),LocalDate.now(),outstanding)
-    var unit by remember {mutableStateOf("day")}
-    Page {
-        ScreenTitle("تحليلات واضحة", "الفترة: ${periodLabel(period)}")
-        AmountLine("صافي المصروفات في الفترة",expense)
-        Panel("البنود حسب إجمالي المبلغ") {
-            if(ranked.isEmpty()) Empty("لم تُسجّل مصروفات لهذه الفترة")
-            val max=ranked.maxOfOrNull {it.value.coerceAtLeast(0)}?:1L
-            ranked.forEach { (id,amount)->
-                Text("${data.category(id)} — ${money(amount)} — ${percent(Finance.percent(amount,expense))}")
-                LinearProgressIndicator(progress={if(max>0)(amount.toFloat()/max).coerceIn(0f,1f)else 0f},modifier=Modifier.fillMaxWidth())
-            }
-            if(expense<=0) Hint("النسب غير متاحة لأن إجمالي صافي المصروفات صفري أو سالب")
-        }
-        Panel("البنود حسب تكرار المصروف") {
-            if(counts.isEmpty()) Hint("لا توجد عمليات مصروف")
-            counts.forEach { (id,n)->
-                val gross=data.transactions.filter {it.type==TxType.EXPENSE&&it.categoryId==id&&period.contains(LocalDate.parse(it.date))}.sumOf {it.amount}
-                Text("${data.category(id)}: $n عملية • متوسط العملية ${money(gross/n)}")
-            }
-            Hint("العدد للمصروفات فقط. المتوسط يستخدم المدفوعات قبل طرح الاستردادات؛ ترتيب المبالغ أعلاه يستخدم صافي المصروفات.")
-        }
-        Panel("مقارنة بفترة متساوية") {
-            Hint("الحالية: ${periodLabel(windows[0])}\nالسابقة: ${periodLabel(windows[1])}")
-            if(comparable) {
-                Text("الحالية ${money(current)} • السابقة ${money(previous)}")
-                AmountLine("الفرق",current-previous)
-                Text("التغير: ${percent(Finance.change(current,previous))}")
-                if(previous<=0) Hint("لا تُحسب نسبة تغير عند صافي سابق صفري أو سالب")
-            }else Hint("الفترة السابقة تسبق بدء المتابعة؛ لا توجد مقارنة مكتملة")
-            Hint("تساوي الأيام لا يثبت اكتمال إدخال العمليات في الفترتين.")
-        }
-        Panel("الوتيرة اليومية والتوقع") {
-            if(days>0) AmountLine("متوسط الإنفاق في $days يومًا تقويميًا",Finance.average(expense,days)) else Hint("لا توجد أيام مغطاة بالتسجيل")
-            if(forecast==null) Hint("التوقع متاح للدورة الحالية بعد 7 أيام من التسجيل على الأقل") else {
-                AmountLine("توقع تقريبي لنهاية الدورة",forecast)
-                Hint("الفعلي + متوسط الإنفاق غير المتكرر × الأيام المتبقية + الالتزامات المتبقية ${money(outstanding)}. نفترض سداد المتأخرات هذا الشهر. المصروفات المرتبطة بالفواتير لا تدخل المتوسط مرة أخرى. هذا توقع محدود الثقة وليس مبلغًا فعليًا.")
-            }
-            Hint("أيام بلا عملية تدخل المتوسط؛ تعني عدم وجود صرف مسجل، ولا تثبت عدم الصرف.")
-        }
-        Panel("اتجاه الإنفاق") {
-            Choice("التجميع",unit,listOf("day" to "يومي","week" to "أسبوعي — يبدأ الأحد","month" to "شهري")){unit=it}
-            val raw=Finance.buckets(entries,period,unit)
-            val buckets=raw.toSortedMap()
-            var cursor=coveredStart
-            while(cursor<coveredEnd) {
-                val key=when(unit) {"month"->java.time.YearMonth.from(cursor).toString();"week"->cursor.minusDays((cursor.dayOfWeek.value%7).toLong()).toString();else->cursor.toString()}
-                buckets.putIfAbsent(key,0L);cursor=cursor.plusDays(1)
-            }
-            if(raw.isEmpty()) Hint("لا توجد عمليات مسجلة للرسم") else {
-                BarChart(buckets.values.toList())
-                buckets.forEach { (date,amount)->Text("${displayDate(date)}: ${money(amount)}",fontSize=13.sp) }
-            }
-            Hint("القيم الصفرية تعني عدم وجود مصروف مسجل. الأعمدة الحمراء تعني صافي استردادات سالبًا. الأسابيع تُنسب إلى تاريخ الأحد؛ بداية ونهاية الدورة قد تحتويان أسبوعًا جزئيًا. التجميع الشهري هنا للأشهر الميلادية الواقعة في الدورة المختارة.")
-        }
-        Panel("خطوات للتخطيط والتوفير") { recommendations(data,period).forEach {Text("• $it",lineHeight=23.sp)} }
-        Spacer(Modifier.height(80.dp))
-    }
-}
-@Composable fun BarChart(values: List<Long>) {
-    val chartColor=MaterialTheme.colorScheme.primary
-    val errorColor=MaterialTheme.colorScheme.error
-    Canvas(Modifier.fillMaxWidth().height(140.dp)) {
-        val max=values.maxOfOrNull {kotlin.math.abs(it).toDouble()}?.coerceAtLeast(1.0)?:1.0
-        val width=size.width/values.size.coerceAtLeast(1)
-        values.forEachIndexed {i,value->
-            val height=(kotlin.math.abs(value)/max*size.height).toFloat()
-            drawRoundRect(if(value>=0) chartColor else errorColor,topLeft=androidx.compose.ui.geometry.Offset(size.width-(i+1)*width,size.height-height),size=androidx.compose.ui.geometry.Size(width*0.72f,height),cornerRadius=androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()))
-        }
-    }
 }
