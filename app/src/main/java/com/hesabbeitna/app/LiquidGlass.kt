@@ -166,8 +166,8 @@ import androidx.compose.ui.unit.dp
 /** One clickable glass plate; selection stays opaque enough to read in either theme. */
 @Composable fun LiquidClickableSurface(onClick: () -> Unit, modifier: Modifier = Modifier,
     chosen: Boolean = false, content: @Composable () -> Unit) {
-    LiquidSurface(modifier) {
-        Surface(onClick = onClick, modifier = Modifier.fillMaxWidth(),
+    LiquidSurface(Modifier.fillMaxWidth()) {
+        Surface(onClick = onClick, modifier = modifier,
             shape = RoundedCornerShape(26.dp),
             color = if (chosen) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
             border = if (chosen) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
