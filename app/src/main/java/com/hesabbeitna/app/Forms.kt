@@ -41,9 +41,9 @@ private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString(
         submitted=true
         model.saveTransaction(t,feeAmount,feeId,template=if(saveAsTemplate&&t.type in listOf(TxType.EXPENSE,TxType.INCOME))QuickTemplate(templateKey,templateTitle.trim(),t.type,t.amount,t.accountId,requireNotNull(t.categoryId),t.note)else null) {success->if(success)dismiss()else submitted=false}
     }
-    DialogForm(if(editing!=null) "تعديل العملية" else if(due!=null) "سداد ${due.title}" else "تسجيل عملية",dismiss) {
-        Field(amount,{amount=it;amountError=null},"المبلغ — جنيه",true,error=amountError)
-        if(due==null && editing==null) ActionGrid(listOf(
+    DialogForm(if(editing!=null) "تعديل العملية" else if(due!=null) "سداد ${due.title}" else "تسجيل عملية",dismiss,liquid=true) {
+        LiquidAmountField(amount,{amount=it;amountError=null},amountError)
+        if(due==null && editing==null) LiquidActionGrid(listOf(
             HubAction("type-expense","مصروف","cart"),HubAction("type-income","دخل","wallet"),HubAction("type-transfer","تحويل","transfer")),selected="type-${type.name.lowercase()}") {key->
             type=when(key){"type-income"->TxType.INCOME;"type-transfer"->TxType.TRANSFER;else->TxType.EXPENSE}
             category=data.categories.firstOrNull {it.income==(type==TxType.INCOME)&&!it.archived}?.id?:""

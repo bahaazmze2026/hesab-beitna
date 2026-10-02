@@ -51,6 +51,7 @@ class MainActivity : FragmentActivity() {
             val appearance=remember { Appearance(this@MainActivity) }
             val dark=resolveDark(appearance.mode,isSystemInDarkTheme())
             SideEffect {
+                window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(if(dark)android.graphics.Color.BLACK else android.graphics.Color.rgb(255,248,239)))
                 val bar=if(dark)SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
                     else SystemBarStyle.light(android.graphics.Color.TRANSPARENT,android.graphics.Color.TRANSPARENT)
                 enableEdgeToEdge(statusBarStyle=bar,navigationBarStyle=bar)

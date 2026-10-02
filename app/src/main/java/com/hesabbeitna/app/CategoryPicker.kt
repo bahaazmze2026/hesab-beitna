@@ -22,10 +22,8 @@ private val categoryTints=listOf("green" to "أخضر","orange" to "برتقال
 
 @Composable fun CategoryTile(label:String,icon:String,tint:String,chosen:Boolean=false,tag:String="",click:()->Unit) {
     val colors=MaterialTheme.colorScheme
-    Surface(onClick=click,modifier=Modifier.fillMaxWidth().heightIn(min=104.dp).testTag(tag)
-        .semantics{selected=chosen;role=Role.RadioButton},shape=Brand.Input,
-        color=if(chosen)colors.primaryContainer else colors.surface.copy(alpha=.9f),
-        border=BorderStroke(if(chosen)2.dp else 1.dp,if(chosen)colors.primary else colors.outlineVariant)) {
+    LiquidClickableSurface(onClick=click,modifier=Modifier.fillMaxWidth().heightIn(min=104.dp).testTag(tag)
+        .semantics{selected=chosen;role=Role.RadioButton},chosen=chosen) {
         Column(Modifier.padding(12.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Surface(shape=Brand.Input,color=categoryColor(tint).copy(alpha=.15f)) {
                 Box(Modifier.size(44.dp),contentAlignment=Alignment.Center){ToolIcon(icon,colors.onSurface)}
@@ -53,7 +51,7 @@ private val categoryTints=listOf("green" to "أخضر","orange" to "برتقال
             Column(Modifier.weight(1f)){Hint("التصنيف");Text(selectedCategory?.name?:"اختر صنفًا")};ToolIcon("down")
         }
     }
-    if(expanded)ModalBottomSheet(onDismissRequest={expanded=false;creating=false},containerColor=MaterialTheme.colorScheme.surface) {
+    if(expanded)ModalBottomSheet(onDismissRequest={expanded=false;creating=false},containerColor=Color.Transparent) {
         FrostedWindow()
         GlassSurface(Modifier.fillMaxWidth()) {
             Column(Modifier.fillMaxWidth().imePadding().padding(horizontal=20.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {

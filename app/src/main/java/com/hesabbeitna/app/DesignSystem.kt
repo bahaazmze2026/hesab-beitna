@@ -86,7 +86,7 @@ private val HouseTypography=Typography(
     }
 }
 @Composable fun Panel(title:String?=null,content:@Composable ColumnScope.()->Unit) {
-    Surface(Modifier.fillMaxWidth(),shape=Brand.Card,color=MaterialTheme.colorScheme.surface,border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant.copy(alpha=.55f))) {
+    LiquidSurface(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
             if(title!=null)Text(title,style=MaterialTheme.typography.titleLarge,modifier=Modifier.semantics{heading()});content()
         }
@@ -121,26 +121,34 @@ private val HouseTypography=Typography(
         border=BorderStroke(1.dp,MaterialTheme.colorScheme.outline),contentPadding=PaddingValues(16.dp)) {
         Column(Modifier.weight(1f)){Hint(label);Text(options.firstOrNull{it.first==current}?.second?:"اختر",style=MaterialTheme.typography.bodyLarge,color=MaterialTheme.colorScheme.onSurface)};ToolIcon("down")
     }
-    if(expanded)ModalBottomSheet(onDismissRequest={expanded=false},containerColor=MaterialTheme.colorScheme.surface) {
+    if(expanded)ModalBottomSheet(onDismissRequest={expanded=false},containerColor=Color.Transparent) {
+        FrostedWindow()
+        LiquidSurface(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().heightIn(max=480.dp).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal=20.dp)) {
             ScreenTitle(label)
             options.forEach{option->TextButton(onClick={select(option.first);expanded=false},modifier=Modifier.fillMaxWidth().heightIn(min=56.dp),shape=Brand.Input) {
                 Text(option.second,modifier=Modifier.weight(1f),color=MaterialTheme.colorScheme.onSurface);if(current==option.first)ToolIcon("check")
             };HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)};Spacer(Modifier.height(24.dp))
         }
+        }
     }
 }
-@Composable fun DialogForm(title:String,dismiss:()->Unit,content:@Composable ColumnScope.()->Unit) {
+@Composable fun DialogForm(title:String,dismiss:()->Unit,liquid:Boolean=LocalAppearance.current.glass,content:@Composable ColumnScope.()->Unit) {
     androidx.compose.ui.window.Dialog(onDismissRequest=dismiss,properties=DialogProperties(usePlatformDefaultWidth=false)) {
         FrostedWindow()
-        GlassSurface(Modifier.fillMaxWidth().padding(horizontal=12.dp).safeDrawingPadding().imePadding()) {
+        val body:@Composable ()->Unit = {
             Column(Modifier.fillMaxWidth().heightIn(max=650.dp).verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+                if(liquid)Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center){Box(Modifier.width(40.dp).height(4.dp).clip(Brand.Input).background(MaterialTheme.colorScheme.outline.copy(alpha=.45f)))}
                 Row(verticalAlignment=Alignment.CenterVertically) {
+                    if(liquid){Mascot(36.dp);Spacer(Modifier.width(10.dp))}
                     Text(title,style=MaterialTheme.typography.headlineSmall,modifier=Modifier.weight(1f).semantics{heading()})
                     IconButton(onClick=dismiss,modifier=Modifier.sizeIn(minWidth=48.dp,minHeight=48.dp).semantics{contentDescription="إغلاق"}){ToolIcon("close")}
                 };content();TextButton(onClick=dismiss,modifier=Modifier.fillMaxWidth().heightIn(min=48.dp)){Text("إغلاق")}
             }
         }
+        if(liquid)Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding(),contentAlignment=Alignment.BottomCenter) {
+            LiquidSurface(Modifier.fillMaxWidth().padding(horizontal=10.dp,vertical=8.dp),prominent=true,content=body)
+        }else GlassSurface(Modifier.fillMaxWidth().padding(horizontal=12.dp).safeDrawingPadding().imePadding(),content=body)
     }
 }
 @Composable fun ErrorText(error:String?){if(error!=null)Surface(shape=Brand.Input,color=MaterialTheme.colorScheme.errorContainer) {
@@ -149,12 +157,7 @@ private val HouseTypography=Typography(
 }}
 @Composable fun PrimaryAction(label:String,onClick:()->Unit,enabled:Boolean=true,modifier:Modifier=Modifier){Button(onClick=onClick,enabled=enabled,modifier=modifier.fillMaxWidth().heightIn(min=56.dp),shape=Brand.Input){Text(label)}}
 @Composable fun QuickLink(title:String,detail:String,icon:String,click:()->Unit) {
-    Surface(onClick=click,modifier=Modifier.fillMaxWidth().heightIn(min=64.dp),shape=Brand.Input,color=MaterialTheme.colorScheme.surface) {
-        Row(Modifier.padding(16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-            Surface(shape=Brand.Input,color=MaterialTheme.colorScheme.primaryContainer){Box(Modifier.size(44.dp),contentAlignment=Alignment.Center){ToolIcon(icon)}}
-            Column(Modifier.weight(1f)){Text(title,style=MaterialTheme.typography.titleMedium);Hint(detail)};ToolIcon("back")
-        }
-    }
+    LiquidQuickLink(title,detail,icon,click)
 }
 @Composable fun BrandHeader(back:(()->Unit)?=null,search:(()->Unit)?=null) {
     Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal=20.dp,vertical=12.dp),
@@ -172,7 +175,7 @@ private val HouseTypography=Typography(
 /** Android 12+ blurs the real content behind modal windows when the device supports it. */
 @Composable fun FrostedWindow() {
     val window=(LocalView.current.parent as? DialogWindowProvider)?.window
-    val enabled=LocalAppearance.current.glass
+    val enabled=LocalAppearance.current.glass&&!LocalAppearance.current.reduceEffects
     DisposableEffect(window,enabled) {
         if(Build.VERSION.SDK_INT>=31&&window!=null) {
             val oldRadius=window.attributes.blurBehindRadius
@@ -190,19 +193,7 @@ private val HouseTypography=Typography(
 }
 /** Soft lighting is blurred independently so labels and amounts remain sharp. */
 @Composable fun GlassSurface(modifier:Modifier=Modifier,content:@Composable ()->Unit) {
-    val colors=MaterialTheme.colorScheme
-    val glass=LocalAppearance.current.glass
-    val black=colors.background==Color.Black
-    Box(modifier.clip(Brand.Card).background(colors.surface)) {
-        if(glass)Canvas(Modifier.matchParentSize().blur(24.dp)) {
-            drawCircle((if(black)Color.White else Brand.Orange).copy(alpha=if(black).06f else .20f),size.width*.5f,Offset(size.width*.95f,size.height*.10f))
-            drawCircle((if(black)Color.White else colors.primary).copy(alpha=if(black).04f else .14f),size.width*.45f,Offset(0f,size.height*.9f))
-        }
-        Surface(shape=Brand.Card,color=colors.surface.copy(alpha=if(glass).66f else 1f),
-            border=BorderStroke(1.dp,if(glass)colors.onSurface.copy(alpha=.14f)else colors.outlineVariant)) {
-            Box(Modifier.background(Brush.verticalGradient(listOf(if(glass)colors.surface.copy(alpha=.55f)else Color.Transparent,Color.Transparent)))){content()}
-        }
-    }
+    LiquidSurface(modifier,content=content)
 }
 @Composable fun GlassNavigation(screen:String,select:(String)->Unit) {
     val items=listOf(Triple("home","الرئيسية","home"),Triple("transactions","العمليات","list"),Triple("analytics","التحليلات","chart"),Triple("plan","الخطة","budget"),Triple("more","المزيد","more"))

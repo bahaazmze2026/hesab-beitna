@@ -148,7 +148,7 @@ private fun decimalAmount(value:Long)=BigDecimal.valueOf(value,2).toPlainString(
 }
 @Composable private fun CategorySummary(data:Household,cat:CategoryAnalysis,click:()->Unit) {
     val appearance=LocalAppearance.current
-    Surface(onClick=click,shape=Brand.Input,color=MaterialTheme.colorScheme.surfaceVariant,modifier=Modifier.fillMaxWidth().heightIn(min=72.dp).testTag("analysis-category-${cat.id}")) {
+    LiquidClickableSurface(onClick=click,modifier=Modifier.fillMaxWidth().heightIn(min=72.dp).testTag("analysis-category-${cat.id}")) {
         Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                 ToolIcon(data.categories.firstOrNull{it.id==cat.id}?.let{appearance.icon(it)}?:"wallet")

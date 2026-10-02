@@ -24,16 +24,17 @@ class UpgradePersistenceTest {
     @Test fun seedBeforeUpdate() = runBlocking {
         assumeTrue(InstrumentationRegistry.getArguments().getString("upgradeStage") == "seed")
         Repository(context).save(expected())
-        context.getSharedPreferences("appearance", 0).edit().putString("theme", "DARK").putBoolean("glass", false).commit()
+        context.getSharedPreferences("appearance", 0).edit().putString("theme", "DARK").putBoolean("glass", false).putBoolean("reduce-effects",true).commit()
         assertEquals(expected(), Repository(context).load())
-        assertEquals(6L, context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode)
+        assertEquals(7L, context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode)
     }
     @Test fun verifyAfterUpdate() = runBlocking {
         assumeTrue(InstrumentationRegistry.getArguments().getString("upgradeStage") == "verify")
         val loaded = Repository(context).load()
         assertEquals(expected(), loaded); assertEquals(88766L, loaded.balance(loaded.accounts.single()))
         assertEquals("DARK", context.getSharedPreferences("appearance", 0).getString("theme", ""))
+        assertTrue(context.getSharedPreferences("appearance", 0).getBoolean("reduce-effects", false))
         assertFalse(context.getSharedPreferences("appearance", 0).getBoolean("glass", true))
-        assertEquals(7L, context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode)
+        assertEquals(8L, context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode)
     }
 }

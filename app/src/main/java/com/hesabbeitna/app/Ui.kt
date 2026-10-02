@@ -97,7 +97,7 @@ import java.time.temporal.ChronoUnit
     fun payDue(due:Due){templateId=null;searchHit=null;payingId=due.id;editingId=null;initialType=TxType.EXPENSE;dialog="transaction"}
     Scaffold(snackbarHost={SnackbarHost(snack)},containerColor=MaterialTheme.colorScheme.background,
         topBar={BrandHeader(if(screen in listOf("budget","dues","accounts","settings","search","templates")) {{screen=if(screen=="search")searchOrigin else "more"}} else null,search={openSearch()})},
-        bottomBar={GlassNavigation(screen){screen=it}},
+        bottomBar={LiquidNavigation(screen){screen=it}},
         floatingActionButton={FloatingActionButton(onClick={quickAdd=true},modifier=Modifier.testTag("quick-add").semantics{contentDescription="إضافة عملية"},
             containerColor=MaterialTheme.colorScheme.primary,contentColor=MaterialTheme.colorScheme.onPrimary,shape=Brand.Input){ToolIcon("plus",MaterialTheme.colorScheme.onPrimary);}}
     ) { padding ->
@@ -198,7 +198,7 @@ import java.time.temporal.ChronoUnit
     Page {
         ScreenTitle("كل شيء أوضح", "نظرة هادئة على أموال بيتك")
         if(data.transactions.isNotEmpty()) MeowMessage("Meow • جاهز ليوم جديد", "راجع المتاح ومواعيدك قبل إضافة المصروف التالي.")
-        GlassSurface(Modifier.fillMaxWidth()) {
+        LiquidSurface(Modifier.fillMaxWidth().testTag("liquid-home-hero"),prominent=true) {
             Column(Modifier.fillMaxWidth().padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
                 Text(if(available!=null)"المتاح من الميزانية بعد الالتزامات"else"أرصدة حساباتك الحالية",style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
                 val headline=available?:data.accounts.sumOf{data.balance(it)}
@@ -219,9 +219,9 @@ import java.time.temporal.ChronoUnit
             }
         }
         PrimaryAction("إضافة مصروف",add,modifier=Modifier.testTag("expense-fab"))
-        ActionGrid(listOf(HubAction("home-income","إضافة دخل","wallet"),HubAction("home-transfer","تحويل","transfer"),
+        LiquidActionGrid(listOf(HubAction("home-income","إضافة دخل","wallet"),HubAction("home-transfer","تحويل","transfer"),
             HubAction("home-pay","سداد فاتورة","bill"),HubAction("home-accounts","الحسابات","wallet"))){key->when(key){"home-income"->incomeAdd();"home-transfer"->transferAdd();"home-pay"->dues();else->accounts()}}
-        Panel("ميزانية البيت") {
+        LiquidPanel("ميزانية البيت") {
             if(budget==null)Hint("حدد ميزانية لتعرف المتاح للصرف") else {
                 AmountLine("المتبقي من الميزانية",budget.amount-expense,if(budget.amount>=expense)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
                 LinearProgressIndicator(progress={if(budget.amount>0)(expense.toFloat()/budget.amount).coerceIn(0f,1f)else 0f},modifier=Modifier.fillMaxWidth())
@@ -229,7 +229,7 @@ import java.time.temporal.ChronoUnit
             }
             TextButton(onClick=budgetOpen,modifier=Modifier.testTag("open-budget")){Text("إدارة الميزانية")}
         }
-        Panel("أين تذهب الأموال؟") {
+        LiquidPanel("أين تذهب الأموال؟") {
             if(top==null||top.value<=0)Hint("أضف أول مصروف ليظهر توزيع الإنفاق") else {
                 Text(data.category(top.key),style=MaterialTheme.typography.titleMedium)
                 AmountLine("أكبر بند في هذه الفترة",top.value)
@@ -237,15 +237,15 @@ import java.time.temporal.ChronoUnit
             }
             TextButton(onClick=analytics){Text("عرض التحليلات والتوصيات")}
         }
-        QuickLink("حساباتي ومحافظي", "إجمالي الأرصدة ${money(data.accounts.sumOf{data.balance(it)})}","wallet",accounts)
-        QuickLink("الفواتير والأقساط", "راجع السداد والاستحقاقات القادمة", "calendar",dues)
-        Panel("خلال الأيام السبعة القادمة") {
+        LiquidQuickLink("حساباتي ومحافظي", "إجمالي الأرصدة ${money(data.accounts.sumOf{data.balance(it)})}","wallet",accounts)
+        LiquidQuickLink("الفواتير والأقساط", "راجع السداد والاستحقاقات القادمة", "calendar",dues)
+        LiquidPanel("خلال الأيام السبعة القادمة") {
             val upcoming=data.dues.filter{data.remaining(it)>0&&LocalDate.parse(it.date)<=LocalDate.now().plusDays(7)}.sortedBy{it.date}.take(3)
             if(upcoming.isEmpty())Hint("لا توجد التزامات غير مدفوعة خلال 7 أيام")
             upcoming.forEach{Text(it.title,style=MaterialTheme.typography.titleMedium);Hint("${displayDate(it.date)} • المتبقي ${money(data.remaining(it))}")}
             TextButton(onClick=dues){Text("عرض الالتزامات")}
         }
-        if(data.transactions.isEmpty())Empty("أول خطوة لتنظيم حسابات البيت")
+        if(data.transactions.isEmpty())LiquidPanel {MeowMessage("أول خطوة لتنظيم حسابات البيت","أضف أول عملية حقيقية من زر الإضافة")}
         if(LocalDate.parse(data.prefs.trackingStart)>period.start)Hint("بدأ التسجيل بعد بداية هذه الدورة؛ الأرقام تغطي السجل المتاح فقط.")
         Spacer(Modifier.height(80.dp))
     }
