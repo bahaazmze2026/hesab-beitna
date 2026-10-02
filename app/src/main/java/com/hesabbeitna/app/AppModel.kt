@@ -63,9 +63,13 @@ class AppModel(application: Application) : AndroidViewModel(application) {
         } else txs
         it.copy(transactions = withFees)
     }
-    fun deleteTransaction(id: String) = change("تم حذف العملية") { data ->
+    fun deleteTransaction(id: String,success:String="تم حذف العملية",onResult:(Boolean)->Unit={}) = change(success,onResult) { data ->
         require(data.transactions.none { it.originalId == id }) { "احذف الاستردادات المرتبطة أولًا، أو عدل المصروف" }
         data.copy(transactions = data.transactions.filterNot { it.id == id })
+    }
+    fun restoreTransaction(transaction:Transaction)=change("تم التراجع عن حذف العملية") {data->
+        require(data.transactions.none{it.id==transaction.id}){"العملية موجودة بالفعل"}
+        data.copy(transactions=data.transactions+transaction)
     }
     fun export(uri: Uri, kind: String, password: String, period: Finance.Period) = viewModelScope.launch {
         val snapshot = _data.value ?: return@launch

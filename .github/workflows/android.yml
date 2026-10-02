@@ -20,6 +20,12 @@ jobs:
         with:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
+      - name: Restore preview-only signing identity
+        uses: actions/cache/restore@v4
+        id: preview-key
+        with:
+          path: ~/.android/debug.keystore
+          key: hesab-beitna-preview-debug-v1
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
@@ -68,8 +74,8 @@ jobs:
             gradle --no-daemon assembleRelease
             "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
             mkdir -p qa
-            cp app/build/outputs/apk/release/app-release.apk qa/hesab-beitna-1.3.0.apk
-            sha256sum qa/hesab-beitna-1.3.0.apk > qa/hesab-beitna-1.3.0.sha256
+            cp app/build/outputs/apk/release/app-release.apk qa/hesab-beitna-1.4.0.apk
+            sha256sum qa/hesab-beitna-1.4.0.apk > qa/hesab-beitna-1.4.0.sha256
           else
             gradle --no-daemon assembleRelease
             mkdir -p qa
@@ -99,3 +105,9 @@ jobs:
         run: |
           rm -f owner.jks signing.properties
           rm -rf owner-signing
+      - name: Retain preview-only identity for future updates
+        if: success() && github.ref == 'refs/heads/main' && steps.preview-key.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: hesab-beitna-preview-debug-v1

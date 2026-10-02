@@ -102,7 +102,7 @@ class UiSmokeTest {
             compose.onNodeWithText("1 عملية تطابق الاختيار").performScrollTo().assertExists()
             compose.onNodeWithTag("nav-analytics").performClick();waitText("تحليلات واضحة")
             compose.onAllNodesWithText("70.50",substring=true).onFirst().assertExists();screenshot("analytics",scenario)
-            compose.onNodeWithTag("nav-settings").performClick();waitText("الإعدادات والخصوصية");screenshot("settings",scenario)
+            compose.onNodeWithTag("nav-more").performClick();compose.onNodeWithTag("more-settings").performScrollTo().performClick();waitText("الإعدادات والخصوصية");screenshot("settings",scenario)
             compose.onNodeWithText("الحسابات وهدف الادخار").performScrollTo().performSemanticsAction(SemanticsActions.OnClick){it()};waitText("حساباتي ومحافظي");screenshot("accounts",scenario)
             UiDevice.getInstance(instrumentation).pressBack();waitText("كل شيء أوضح")
             compose.onNodeWithTag("open-budget").performScrollTo().performSemanticsAction(SemanticsActions.OnClick){it()};waitText("ميزانية الدورة");screenshot("budget",scenario)
@@ -117,7 +117,7 @@ class UiSmokeTest {
         context.getSharedPreferences("appearance",android.content.Context.MODE_PRIVATE).edit().clear().commit()
         ActivityScenario.launch(MainActivity::class.java).use {scenario->
             waitText("كل شيء أوضح")
-            compose.onNodeWithTag("nav-settings").performClick()
+            compose.onNodeWithTag("nav-more").performClick();compose.onNodeWithTag("more-settings").performScrollTo().performClick()
             compose.onNodeWithTag("theme-light").performScrollTo().performClick().assertIsSelected()
             screenshot("light-settings",scenario)
             scenario.recreate();waitText("مظهر التطبيق")
@@ -157,7 +157,7 @@ class UiSmokeTest {
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             waitText("كل شيء أوضح");screenshot("large-home",scenario)
             compose.onNodeWithTag("nav-transactions").performClick();waitText("سجل العمليات");screenshot("large-transactions",scenario)
-            compose.onNodeWithTag("expense-fab").performClick()
+            compose.onNodeWithTag("quick-add").performClick();compose.onNodeWithTag("add-expense").performClick()
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextInput("123.45")
             scenario.recreate()
             // The draft and open form survive recreation; no draft becomes a financial record.

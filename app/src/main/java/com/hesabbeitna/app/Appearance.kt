@@ -3,7 +3,7 @@ package com.hesabbeitna.app
 import android.content.Context
 import androidx.compose.runtime.*
 
-enum class ThemeMode(val title:String) { LIGHT("فاتح"), DARK("داكن"), SYSTEM("حسب الهاتف") }
+enum class ThemeMode(val title:String) { LIGHT("فاتح"), DARK("أسود"), SYSTEM("حسب الهاتف") }
 fun resolveDark(mode:ThemeMode,systemDark:Boolean)=when(mode){ThemeMode.LIGHT->false;ThemeMode.DARK->true;ThemeMode.SYSTEM->systemDark}
 
 /** Appearance stays device-local; changing it never rewrites the financial snapshot. */
