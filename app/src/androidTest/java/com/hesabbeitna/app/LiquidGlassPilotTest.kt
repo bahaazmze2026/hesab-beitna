@@ -12,6 +12,7 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
@@ -38,6 +39,8 @@ class LiquidGlassPilotTest {
             }
             activity.window.decorView.invalidate()
         }
+        assertNull("System ANR must not obscure an acceptance screenshot",
+            UiDevice.getInstance(instrumentation).findObject(By.textContains("isn't responding")))
         val file=File(context.filesDir,"qa-liquid-$name.png")
         var valid=false
         repeat(8){if(!valid){

@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -uo pipefail
 status=0
+# Pixel Launcher is unrelated to app acceptance and can raise a background ANR on
+# heavily loaded hosted emulators. Explicit ActivityScenario launches need no home app.
+adb shell am force-stop com.google.android.apps.nexuslauncher || true
+adb shell pm disable-user --user 0 com.google.android.apps.nexuslauncher || true
 gradle --no-daemon -PpreviewVersionCode=7 connectedDebugAndroidTest || status=$?
 mkdir -p qa
 if [ "$status" -eq 0 ]; then
