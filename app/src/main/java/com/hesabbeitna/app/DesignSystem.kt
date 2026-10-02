@@ -215,9 +215,9 @@ private val HouseTypography=Typography(
         }
     }
 }
-@Composable fun ToolIcon(kind:String,color:Color=MaterialTheme.colorScheme.primary,size:Dp=24.dp) {
+@Composable fun ToolIcon(kind:String,color:Color=MaterialTheme.colorScheme.primary,iconSize:Dp=24.dp) {
     if(kind=="cat") { Image(painterResource(R.drawable.brand_cat),null,Modifier.size(28.dp));return }
-    Canvas(Modifier.size(size)) {
+    Canvas(Modifier.size(iconSize)) {
         val s=size.width/24f
         fun line(x:Float,y:Float,xx:Float,yy:Float){drawLine(color,Offset(x*s,y*s),Offset(xx*s,yy*s),1.8f*s,StrokeCap.Round)}
         fun path(vararg p:Float){val shape=Path();shape.moveTo(p[0]*s,p[1]*s);for(i in 2 until p.size step 2)shape.lineTo(p[i]*s,p[i+1]*s);drawPath(shape,color,style=Stroke(1.8f*s,cap=StrokeCap.Round))}

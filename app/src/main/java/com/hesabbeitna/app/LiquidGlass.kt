@@ -133,7 +133,7 @@ import androidx.compose.ui.unit.dp
                         shape = RoundedCornerShape(18.dp), color = Color.Transparent) {
                         Column(Modifier.padding(vertical = 3.dp, horizontal = 2.dp), horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            ToolIcon(icon, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, size = 20.dp)
+                            ToolIcon(icon, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, iconSize = 20.dp)
                             Text(label, style = MaterialTheme.typography.labelSmall,
                                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                         }
