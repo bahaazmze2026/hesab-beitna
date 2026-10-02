@@ -72,7 +72,7 @@ class LiquidGlassPilotTest {
             compose.waitUntil(30_000){snapshot().transactions.size==1}
             assertEquals(2550L,snapshot().transactions.single().amount);assertEquals(97_450L,snapshot().balance(snapshot().accounts.single()))
             tag("nav-more").performClick();tag("more-settings").performScrollTo().performClick();waitText("مظهر التطبيق")
-            tag("theme-dark").performClick();tag("reduce-effects-toggle").performScrollTo().performClick()
+            tag("theme-dark").performClick();tag("reduce-effects-toggle").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick){it()}
             assertTrue(context.getSharedPreferences("appearance",0).getBoolean("reduce-effects",false))
             val before=snapshot();scenario.recreate();waitText("مظهر التطبيق")
             assertTrue(context.getSharedPreferences("appearance",0).getBoolean("reduce-effects",false));assertEquals(before,snapshot())
@@ -90,7 +90,7 @@ class LiquidGlassPilotTest {
             UiDevice.getInstance(instrumentation).pressBack();compose.waitForIdle();capture("entry-black",scenario)
             compose.onNodeWithText("حفظ").performScrollTo().performClick()
             compose.waitUntil(30_000){snapshot().transactions.size==2};assertEquals(107_450L,snapshot().balance(snapshot().accounts.single()))
-            tag("nav-more").performClick();tag("more-settings").performScrollTo().performClick();tag("glass-toggle").performScrollTo().performClick()
+            tag("nav-more").performClick();tag("more-settings").performScrollTo().performClick();tag("glass-toggle").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick){it()}
             assertFalse(context.getSharedPreferences("appearance",0).getBoolean("glass",true))
             tag("nav-home").performClick();waitText("كل شيء أوضح");capture("home-solid-fallback",scenario,true)
             assertEquals(2,snapshot().transactions.size);assertEquals(107_450L,snapshot().balance(snapshot().accounts.single()))

@@ -86,7 +86,8 @@ class UiSmokeTest {
             compose.onNodeWithTag("nav-transactions").performClick()
             waitText("سجل العمليات")
             compose.onNode(hasSetTextAction() and hasText("ابحث في الملاحظة أو البند أو الحساب")).performTextInput("احتياجات")
-            compose.onNodeWithText("تعديل").performScrollTo().performClick()
+            compose.onNodeWithText("تعديل").performScrollTo().performSemanticsAction(SemanticsActions.OnClick){it()}
+            waitText("تعديل العملية")
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextReplacement("70.50")
             compose.onNodeWithText("حفظ").performScrollTo().performClick()
             compose.waitUntil(30_000){financialSnapshot().transactions.single().amount==7050L}

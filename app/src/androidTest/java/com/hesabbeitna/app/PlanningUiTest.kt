@@ -64,11 +64,12 @@ class PlanningUiTest {
             scenario.recreate(); waitText("خطتك المحفوظة"); capture("plan-light", scenario)
             tag("plan-calendar").performClick(); waitText("التقويم المالي")
             tag("calendar-${today()}").performScrollTo().performClick(); waitText("كهرباء التقويم"); capture("calendar-light", scenario)
-            compose.onNodeWithTag("calendar-pay-test-rule:${today()}").performScrollTo().performClick()
+            compose.onNodeWithTag("calendar-pay-test-rule:${today()}").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick){it()}
+            waitText("سداد كهرباء التقويم")
             compose.onNodeWithText("حفظ").performScrollTo().performClick()
             compose.waitUntil(30_000) { snapshot().transactions.size == 1 }
             assertEquals(5000L, snapshot().transactions.single().amount); assertEquals(95_000L, snapshot().balance(snapshot().accounts.single()))
-            tag("nav-more").performClick(); tag("more-templates").performScrollTo().performClick(); tag("add-template").performScrollTo().performClick()
+            tag("nav-more").performClick(); tag("more-templates").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick){it()}; waitText("القوالب السريعة"); tag("add-template").performScrollTo().performClick()
             field("اسم القالب", "مواصلات سريعة"); field("مبلغ القالب — جنيه", "12.50")
             tag("save-template").performScrollTo().performClick()
             compose.waitUntil(30_000) { snapshot().templates.size == 1 }
