@@ -104,7 +104,9 @@ import java.time.temporal.ChronoUnit
                 Button(onClick={addExpense()},modifier=Modifier.weight(1f).heightIn(min=48.dp).testTag("quick-add"),shape=Brand.Input) {
                     ToolIcon("plus",MaterialTheme.colorScheme.onPrimary,20.dp);Spacer(Modifier.width(8.dp));Text("إضافة مصروف")
                 }
-                OutlinedButton(onClick={quickAdd=true},modifier=Modifier.heightIn(min=48.dp).testTag("quick-options"),shape=Brand.Input) {
+                if(LocalDensity.current.fontScale>1.3f) OutlinedIconButton(onClick={quickAdd=true},modifier=Modifier.size(48.dp).testTag("quick-options").semantics{contentDescription="إضافة أخرى"}) {
+                    ToolIcon("more")
+                } else OutlinedButton(onClick={quickAdd=true},modifier=Modifier.heightIn(min=48.dp).testTag("quick-options"),shape=Brand.Input) {
                     Text("إضافة أخرى")
                 }
             }
@@ -221,7 +223,6 @@ import java.time.temporal.ChronoUnit
                 TextButton(onClick=if(available!=null)dues else budgetOpen){Text(if(available!=null)"محجوز للالتزامات ${money(committed)}"else"تحديد ميزانية البيت")}
             }
         }
-        PrimaryAction("إضافة مصروف",add,modifier=Modifier.testTag("expense-fab"))
         MetricPair("صافي المصروفات",expense,"الدخل الفعلي",income)
         Hint("الفائض المسجل ${money(income-expense)} • يخص الدورة ويختلف عن رصيد الحسابات")
         LiquidPanel("ميزانية البيت") {
@@ -243,8 +244,8 @@ import java.time.temporal.ChronoUnit
             }
             TextButton(onClick=analytics){Text("عرض التحليلات والتوصيات")}
         }
-        LiquidQuickLink("حساباتي ومحافظي", "إجمالي الأرصدة ${money(data.accounts.sumOf{data.balance(it)})}","wallet",accounts)
-        LiquidQuickLink("الفواتير والأقساط", "راجع السداد والاستحقاقات القادمة", "calendar",dues)
+        LiquidQuickLink("حساباتي ومحافظي", "إجمالي الأرصدة ${money(data.accounts.sumOf{data.balance(it)})}","wallet",click=accounts)
+        LiquidQuickLink("الفواتير والأقساط", "راجع السداد والاستحقاقات القادمة", "calendar",click=dues)
         LiquidPanel("خلال الأيام السبعة القادمة") {
             val upcoming=data.dues.filter{data.remaining(it)>0&&LocalDate.parse(it.date)<=LocalDate.now().plusDays(7)}.sortedBy{it.date}.take(3)
             if(upcoming.isEmpty())Hint("لا توجد التزامات غير مدفوعة خلال 7 أيام")

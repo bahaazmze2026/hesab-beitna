@@ -81,7 +81,7 @@ class UxReviewTest {
             compose.onNodeWithTag("theme-dark").performClick()
             click("nav-home");waitText("كل شيء أوضح");capture("home-dark",scenario)
             click("nav-analytics");waitText("تحليلات واضحة");capture("analytics-dark",scenario)
-            click("nav-home");compose.onNodeWithTag("expense-fab").performScrollTo().performClick();waitText("تسجيل عملية");capture("entry-dark",scenario)
+            click("nav-home");if(stage=="before")compose.onNodeWithTag("expense-fab").performScrollTo().performClick() else click("quick-add");waitText("تسجيل عملية");capture("entry-dark",scenario)
             assertEquals(fixture(),runBlocking{Repository(context).load()})
         }
     }
@@ -110,7 +110,7 @@ class UxReviewTest {
             click("nav-analytics");waitText("تحليلات واضحة")
             compose.onNodeWithTag("analysis-comparison").performScrollTo().performClick();capture("analytics-large-font",scenario)
             click("nav-more");compose.onNodeWithTag("more-settings").performScrollTo().performClick()
-            compose.onNodeWithTag("theme-dark").performClick();click("nav-home");waitText("كل شيء أوضح")
+            compose.onNodeWithTag("theme-dark").performScrollTo().performClick();click("nav-home");waitText("كل شيء أوضح")
             val layouts=mutableListOf<TextLayoutResult>()
             compose.onNodeWithTag("home-main-amount").performSemanticsAction(SemanticsActions.GetTextLayoutResult){it(layouts)}
             assertFalse("Main amount must not truncate at 150% font",layouts.single().didOverflowWidth)

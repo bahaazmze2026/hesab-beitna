@@ -48,7 +48,7 @@ data class HubAction(val key:String,val title:String,val icon:String)
     var results by remember{mutableStateOf<List<SearchHit>>(emptyList())}
     var loading by remember{mutableStateOf(false)}
     LaunchedEffect(data,query){
-        loading=query.isNotBlank();results=emptyList()
+        loading=query.isNotBlank();if(query.isBlank())results=emptyList()
         if(query.isNotBlank()){delay(200);results=withContext(Dispatchers.Default){searchHousehold(data,query)}}
         loading=false
     }
@@ -61,14 +61,21 @@ data class HubAction(val key:String,val title:String,val icon:String)
             ActionGrid(listOf(HubAction("search-accounts","الحسابات","wallet"),HubAction("search-budget","الميزانية","budget"),
                 HubAction("search-dues","الفواتير","bill"),HubAction("search-settings","الإعدادات","settings")),click={navigate(it.removePrefix("search-"))})
             Hint("مثال: كهرباء، 125.50، أو 2026-10")
-        }else if(loading)CircularProgressIndicator()else if(results.isEmpty()){
-            Panel("لا توجد نتائج"){Hint("جرّب كلمة أقصر أو جزءًا من المبلغ أو التاريخ");TextButton(onClick={query=""}){Text("بدء بحث جديد")}}
-        }else{
+        }else {
+            Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.fillMaxWidth().height(3.dp)){if(loading)LinearProgressIndicator(Modifier.fillMaxSize())}
+                Hint(if(loading)"جارٍ البحث… النتائج السابقة مؤقتة"else"${results.size} نتيجة")
+            }
+            if(results.isEmpty()) {
+                if(loading)Panel("البحث في سجلك"){Hint("جارٍ تجهيز النتائج")}
+                else Panel("لا توجد نتائج"){Hint("جرّب كلمة أقصر أو جزءًا من المبلغ أو التاريخ");TextButton(onClick={query=""}){Text("بدء بحث جديد")}}
+            }else{
             Hint("تظهر حتى 20 حسابًا و20 صنفًا و30 فاتورة وأحدث 50 عملية مطابقة")
             for((kind,label)in listOf("action" to "الأدوات","account" to "الحسابات","category" to "الأصناف","due" to "الفواتير","transaction" to "العمليات")){
                 val rows=results.filter{it.kind==kind}
-                if(rows.isNotEmpty())Panel(label){rows.forEach{hit->QuickLink(hit.title,hit.detail,when(kind){"account"->"wallet";"category"->"cart";"due"->"bill";else->"list"}){open(hit)}}}
+                if(rows.isNotEmpty())Panel(label){rows.forEach{hit->LiquidQuickLink(hit.title,hit.detail,when(kind){"account"->"wallet";"category"->"cart";"due"->"bill";else->"list"},enabled=!loading){open(hit)}}}
             }
+        }
         }
         Spacer(Modifier.height(8.dp))
     }

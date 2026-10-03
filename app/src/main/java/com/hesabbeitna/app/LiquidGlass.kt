@@ -165,9 +165,9 @@ import androidx.compose.ui.unit.dp
             focusedContainerColor = MaterialTheme.colorScheme.surface))
 }
 
-@Composable fun LiquidQuickLink(title:String,detail:String,icon:String,click:()->Unit) {
+@Composable fun LiquidQuickLink(title:String,detail:String,icon:String,enabled:Boolean=true,click:()->Unit) {
     LiquidSurface(Modifier.fillMaxWidth()) {
-        Surface(onClick=click,modifier=Modifier.fillMaxWidth().heightIn(min=64.dp),color=Color.Transparent,contentColor=MaterialTheme.colorScheme.onSurface,shape=RoundedCornerShape(26.dp)) {
+        Surface(onClick=click,enabled=enabled,modifier=Modifier.fillMaxWidth().heightIn(min=64.dp),color=Color.Transparent,contentColor=MaterialTheme.colorScheme.onSurface,shape=RoundedCornerShape(26.dp)) {
             Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                 ToolIcon(icon)
                 Column(Modifier.weight(1f)){Text(title,style=MaterialTheme.typography.titleMedium);Hint(detail)}

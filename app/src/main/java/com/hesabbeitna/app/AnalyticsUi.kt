@@ -30,7 +30,7 @@ import kotlinx.coroutines.withContext
 
 private fun decimalAmount(value:Long)=BigDecimal.valueOf(value,2).toPlainString()
 @Composable fun AnalyticsScreen(data:Household,period:Finance.Period,model:AppModel,initialTab:String="overview") {
-    var loaded by remember(data,period.start,period.end){mutableStateOf<Analytics?>(null)}
+    var loaded by remember(period.start,period.end){mutableStateOf<Analytics?>(null)}
     LaunchedEffect(data,period.start,period.end) {
         loaded=withContext(Dispatchers.Default){Analytics(data,period).also{it.signals()}}
     }

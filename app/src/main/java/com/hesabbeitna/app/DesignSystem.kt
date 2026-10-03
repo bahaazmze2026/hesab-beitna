@@ -196,7 +196,7 @@ private val HouseTypography=Typography(
 }}
 @Composable fun PrimaryAction(label:String,onClick:()->Unit,enabled:Boolean=true,modifier:Modifier=Modifier){Button(onClick=onClick,enabled=enabled,modifier=modifier.fillMaxWidth().heightIn(min=56.dp),shape=Brand.Input){Text(label)}}
 @Composable fun QuickLink(title:String,detail:String,icon:String,click:()->Unit) {
-    LiquidQuickLink(title,detail,icon,click)
+    LiquidQuickLink(title,detail,icon,click=click)
 }
 @Composable fun BrandHeader(back:(()->Unit)?=null,search:(()->Unit)?=null) {
     Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal=16.dp,vertical=4.dp),

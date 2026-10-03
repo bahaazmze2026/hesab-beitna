@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -uo pipefail
 status=0
+collect_qa() {
+  mkdir -p qa
+  adb pull /sdcard/Pictures/HesabBeitnaQA/ qa/screenshots/ || true
+  adb pull /sdcard/Android/data/com.hesabbeitna.app.preview/files/ qa/ui-diagnostics/ || true
+}
+trap collect_qa EXIT
 # Pixel Launcher is unrelated to app acceptance and can raise a background ANR on
 # heavily loaded hosted emulators. Explicit ActivityScenario launches need no home app.
 adb shell am force-stop com.google.android.apps.nexuslauncher || true
@@ -36,6 +42,4 @@ if [ "$status" -eq 0 ]; then
   adb shell am instrument -w -e class com.hesabbeitna.app.LauncherIconTest -e iconStage verify com.hesabbeitna.app.preview.test/androidx.test.runner.AndroidJUnitRunner > qa/icon-runtime.txt
   if ! grep -Fq 'OK (1 test)' qa/icon-runtime.txt; then cat qa/icon-runtime.txt; adb pull /sdcard/Pictures/HesabBeitnaQA/ qa/screenshots/ || true; exit 1; fi
 fi
-adb pull /sdcard/Pictures/HesabBeitnaQA/ qa/screenshots/ || true
-adb pull /sdcard/Android/data/com.hesabbeitna.app.preview/files/ qa/ui-diagnostics/ || true
 exit "$status"
