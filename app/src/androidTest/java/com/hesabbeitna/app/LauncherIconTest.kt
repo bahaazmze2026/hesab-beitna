@@ -74,7 +74,7 @@ class LauncherIconTest {
             device.executeShellCommand("input swipe ${device.displayWidth / 2} ${device.displayHeight * 85 / 100} ${device.displayWidth / 2} ${device.displayHeight * 25 / 100} 150")
             screenshot("drawer-gesture-$attempt")
             device.dumpWindowHierarchy(File(context.getExternalFilesDir(null), "drawer-$attempt.xml"))
-            if (device.wait(Until.hasObject(By.text("All apps")), 5_000)) { opened = true; break }
+            if (device.wait(Until.hasObject(By.desc("All apps")), 5_000)) { opened = true; break }
             device.pressBack(); device.waitForIdle(3_000)
         }
         screenshot("drawer-attempt")
