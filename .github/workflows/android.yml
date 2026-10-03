@@ -6,6 +6,7 @@ on:
   pull_request:
 permissions:
   contents: read
+  actions: read
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -30,7 +31,15 @@ jobs:
           bash tools/check-finance.sh
           python3 tools/check-project.py
       - name: Tests, lint and installable debug APK
-        run: gradle --no-daemon -PpreviewVersionCode=8 testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
+        run: gradle --no-daemon -PpreviewVersionCode=9 testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
+      - name: Fetch delivered 1.6.1 APK for real update acceptance
+        uses: actions/download-artifact@v4
+        with:
+          name: hesab-beitna-apk-and-reports
+          path: qa/previous-delivery
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: bahaazmze2026/hesab-beitna
+          run-id: 37079032310
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -68,8 +77,8 @@ jobs:
             gradle --no-daemon assembleRelease
             "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
             mkdir -p qa
-            cp app/build/outputs/apk/release/app-release.apk qa/meow-budget-1.6.1.apk
-            sha256sum qa/meow-budget-1.6.1.apk > qa/meow-budget-1.6.1.sha256
+            cp app/build/outputs/apk/release/app-release.apk qa/meow-budget-1.6.2.apk
+            sha256sum qa/meow-budget-1.6.2.apk > qa/meow-budget-1.6.2.sha256
           else
             gradle --no-daemon assembleRelease
             mkdir -p qa
@@ -83,6 +92,9 @@ jobs:
           path: |
             owner-signing/owner.jks
             owner-signing/owner-password.rsa
+      - name: Remove downloaded baseline reports before final artifact upload
+        if: always()
+        run: rm -rf qa/previous-delivery
       - uses: actions/upload-artifact@v4
         if: always()
         with:
