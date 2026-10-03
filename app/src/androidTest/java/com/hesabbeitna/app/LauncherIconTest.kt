@@ -18,6 +18,7 @@ import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.io.ByteArrayOutputStream
 
 /** Run after update acceptance with Pixel Launcher enabled; finance tests need no launcher. */
 @RunWith(AndroidJUnit4::class)
@@ -57,9 +58,18 @@ class LauncherIconTest {
         val shortcuts = context.getSystemService(android.content.pm.ShortcutManager::class.java)
         assertTrue("No independent static shortcut icons exist", shortcuts.manifestShortcuts.isEmpty())
         assertTrue("No independent dynamic shortcut icons exist", shortcuts.dynamicShortcuts.isEmpty())
-        device.pressHome(); device.waitForIdle(5_000)
+        // Explicitly choose the test launcher after reenabling it; avoid a Home chooser.
+        println(device.executeShellCommand("cmd package set-home-activity com.google.android.apps.nexuslauncher/.NexusLauncherActivity"))
+        println(device.executeShellCommand("am start -a android.intent.action.MAIN -c android.intent.category.HOME -n com.google.android.apps.nexuslauncher/.NexusLauncherActivity"))
+        device.wait(Until.hasObject(By.pkg("com.google.android.apps.nexuslauncher")), 20_000)
+        device.waitForIdle(5_000)
+        screenshot("launcher-home")
         device.swipe(device.displayWidth / 2, device.displayHeight * 85 / 100,
             device.displayWidth / 2, device.displayHeight * 25 / 100, 25)
+        device.waitForIdle(5_000)
+        screenshot("drawer-attempt")
+        val hierarchy = ByteArrayOutputStream(); device.dumpWindowHierarchy(hierarchy)
+        println(hierarchy.toString())
         assertTrue("Updated app must be listed by the launcher",
             device.wait(Until.hasObject(By.text("Meow Budget")), 20_000))
         screenshot("app-drawer")
