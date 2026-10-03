@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -138,12 +139,13 @@ import androidx.compose.ui.unit.dp
                 items.forEachIndexed { index, (key, label, icon) ->
                     val selected = index == selectedIndex
                     Surface(onClick = { select(key) }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)
-                        .testTag("nav-$key").semantics { this.selected = selected; role = Role.Tab },
+                        .testTag("nav-$key").semantics { this.selected = selected; role = Role.Tab; contentDescription = label },
                         shape = RoundedCornerShape(18.dp), color = Color.Transparent) {
                         Column(Modifier.padding(vertical = 0.dp, horizontal = 2.dp), horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             ToolIcon(icon, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, iconSize = 20.dp)
-                            Text(label, style = MaterialTheme.typography.labelSmall,
+                            val compactLabel=if(androidx.compose.ui.platform.LocalDensity.current.fontScale>1.3f)when(key){"transactions"->"عمليات";"analytics"->"تحليل";else->label}else label
+                            Text(compactLabel, style = MaterialTheme.typography.labelSmall,
                                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }

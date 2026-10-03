@@ -31,10 +31,12 @@ if [ "$status" -eq 0 ]; then
   adb shell wm size 840x1680
   adb shell wm density 420
   adb shell settings put system font_scale 1.5
+  adb shell settings put secure show_ime_with_hard_keyboard 1
   adb shell am instrument -w -e class com.hesabbeitna.app.UxReviewTest#smallViewport -e uxStage small com.hesabbeitna.app.preview.test/androidx.test.runner.AndroidJUnitRunner > qa/ux-small.txt
   adb shell wm size reset
   adb shell wm density reset
   adb shell settings put system font_scale 1.0
+  adb shell settings put secure show_ime_with_hard_keyboard 0
   if ! grep -Fq 'OK (1 test)' qa/ux-small.txt; then cat qa/ux-small.txt; exit 1; fi
   # Icon UI verification needs a real launcher, separate from finance UI acceptance.
   adb shell pm enable com.google.android.apps.nexuslauncher || exit $?

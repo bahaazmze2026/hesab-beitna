@@ -4,6 +4,8 @@ import android.content.ContentValues
 import android.provider.MediaStore
 import android.view.WindowManager
 import android.view.inspector.WindowInspector
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.semantics.SemanticsActions
@@ -88,6 +90,7 @@ class UxReviewTest {
     @Test fun smallViewport() {
         assumeTrue(stage=="small");seed()
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            try {
             waitText("كل شيء أوضح")
             scenario.onActivity{activity->assertTrue(activity.resources.configuration.screenWidthDp<=320);assertTrue(activity.resources.configuration.fontScale>=1.45f)}
             for(tag in listOf("nav-home","nav-transactions","nav-analytics","nav-plan","nav-more","quick-add","quick-options")) {
@@ -100,21 +103,31 @@ class UxReviewTest {
             click("quick-add");waitText("تسجيل عملية")
             compose.onNodeWithTag("type-expense").assertIsSelected()
             val amount=compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه"))
+            amount.performClick()
+            compose.waitUntil(10_000){WindowInspector.getGlobalWindowViews().any{ViewCompat.getRootWindowInsets(it)?.isVisible(WindowInsetsCompat.Type.ime())==true}}
             amount.performTextInput("43.21")
             compose.onNodeWithTag("save-transaction").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
             capture("keyboard",scenario)
             amount.performImeAction();compose.waitForIdle();click("save-transaction")
             compose.waitUntil(30_000){runBlocking{Repository(context).load()}.transactions.size==4}
             assertEquals(4321L,runBlocking{Repository(context).load()}.transactions.last().amount)
+            waitText("Meow • تم حفظ العملية")
+            compose.waitUntil(10_000){compose.onAllNodesWithText("Meow • تم حفظ العملية").fetchSemanticsNodes().isEmpty()}
             click("nav-transactions");waitText("سجل العمليات");capture("transactions-large-font",scenario)
             click("nav-analytics");waitText("تحليلات واضحة")
             compose.onNodeWithTag("analysis-comparison").performScrollTo().performClick();capture("analytics-large-font",scenario)
-            click("nav-more");compose.onNodeWithTag("more-settings").performScrollTo().performClick()
+            click("nav-more");capture("more-large-font",scenario)
+            compose.onNodeWithTag("more-settings").performScrollTo().performClick();waitText("مظهر التطبيق");capture("settings-large-font",scenario)
             compose.onNodeWithTag("theme-dark").performScrollTo().performClick();click("nav-home");waitText("كل شيء أوضح")
             val layouts=mutableListOf<TextLayoutResult>()
             compose.onNodeWithTag("home-main-amount").performSemanticsAction(SemanticsActions.GetTextLayoutResult){it(layouts)}
             assertFalse("Main amount must not truncate at 150% font",layouts.single().didOverflowWidth)
             capture("home-dark-large-font",scenario)
+            } catch(error:Throwable) {
+                capture("failure",scenario)
+                UiDevice.getInstance(instrumentation).dumpWindowHierarchy(File(context.getExternalFilesDir(null),"ux-small-failure.xml"))
+                throw error
+            }
         }
     }
 }
