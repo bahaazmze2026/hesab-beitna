@@ -55,15 +55,15 @@ class BlackGlassUiTest {
         context.getSharedPreferences("appearance",0).edit().putString("theme","DARK").putBoolean("glass",true).commit()
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             waitText("كل شيء أوضح");captureBlack(scenario)
-            click("quick-add");for(tag in listOf("add-expense","add-income","add-transfer","add-payment"))compose.onNodeWithTag(tag).assertIsDisplayed()
+            click("quick-options");for(tag in listOf("add-expense","add-income","add-transfer","add-payment"))compose.onNodeWithTag(tag).assertIsDisplayed()
             click("add-income");compose.onNodeWithTag("type-income").assertIsSelected()
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextInput("50.00")
-            compose.onNodeWithText("حفظ").performScrollTo().performClick()
+            compose.onNodeWithText("حفظ").performClick()
             compose.waitUntil(30_000){snapshot().transactions.size==2}
             assertEquals(TxType.INCOME,snapshot().transactions.last().type)
-            click("quick-add");click("add-transfer");compose.onNodeWithTag("type-transfer").assertIsSelected()
+            click("quick-options");click("add-transfer");compose.onNodeWithTag("type-transfer").assertIsSelected()
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextInput("10.00")
-            compose.onNodeWithText("حفظ").performScrollTo().performClick()
+            compose.onNodeWithText("حفظ").performClick()
             compose.waitUntil(30_000){snapshot().transactions.size==3}
             assertEquals(1000L,snapshot().balance(snapshot().accounts.first{it.id=="wallet"}))
             click("nav-more");compose.onNodeWithTag("more-accounts").assertExists();compose.onNodeWithTag("more-settings").performScrollTo().performClick()
@@ -75,7 +75,7 @@ class BlackGlassUiTest {
             waitText("إيصال كهرباء قديم");compose.onNodeWithText("إيصال كهرباء قديم").performScrollTo().performClick()
             waitText("تعديل هذه العملية");compose.onNodeWithText("تعديل هذه العملية").performScrollTo().performClick()
             compose.onNode(hasSetTextAction() and hasText("ملاحظة اختيارية")).performScrollTo().performTextReplacement("إيصال كهرباء تم مراجعته")
-            compose.onNodeWithText("حفظ").performScrollTo().performClick()
+            compose.onNodeWithText("حفظ").performClick()
             compose.waitUntil(30_000){snapshot().transactions.first{it.id=="historic"}.note.contains("مراجعته")}
             assertEquals(3,snapshot().transactions.size)
             assertEquals(92_450L,snapshot().accounts.sumOf{snapshot().balance(it)})

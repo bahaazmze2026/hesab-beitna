@@ -30,7 +30,7 @@ import kotlinx.coroutines.withContext
 
 private fun decimalAmount(value:Long)=BigDecimal.valueOf(value,2).toPlainString()
 @Composable fun AnalyticsScreen(data:Household,period:Finance.Period,model:AppModel,initialTab:String="overview") {
-    var loaded by remember(data,period.start,period.end){mutableStateOf<Analytics?>(null)}
+    var loaded by remember(period.start,period.end){mutableStateOf<Analytics?>(null)}
     LaunchedEffect(data,period.start,period.end) {
         loaded=withContext(Dispatchers.Default){Analytics(data,period).also{it.signals()}}
     }
@@ -46,22 +46,19 @@ private fun decimalAmount(value:Long)=BigDecimal.valueOf(value,2).toPlainString(
     val tabs=listOf(Triple("overview","نظرة عامة","home"),Triple("spending","تفاصيل الإنفاق","list"),Triple("comparison","المقارنات","chart"),Triple("planning","خطة التوفير","budget"))
     Column(Modifier.fillMaxSize()) {
         GlassSurface(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(8.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
-                tabs.chunked(2).forEach {row->Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                    row.forEach{(key,label,icon)->FilterChip(selected=tab==key,onClick={tab=key},label={Text(label)},leadingIcon={ToolIcon(icon)},
-                        modifier=Modifier.weight(1f).heightIn(min=52.dp).testTag("analysis-$key"))}
-                }}
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal=12.dp,vertical=4.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                tabs.forEach{(key,label,icon)->FilterChip(selected=tab==key,onClick={tab=key},label={Text(label)},
+                    modifier=Modifier.heightIn(min=48.dp).testTag("analysis-$key"))}
             }
         }
     tabState.SaveableStateProvider(tab){Page {
         ScreenTitle("تحليلات واضحة","مساعد البيت المالي • ${periodLabel(period)}")
         if(report.coveredDays==0L)Hint("الفترة خارج الأيام المسجلة حتى اليوم؛ لا يمكن استنتاج نمط للصرف منها")
-        else Hint("الأرقام من السجل المتاح خلال ${report.coveredDays} يومًا. اليوم بلا عملية لا يثبت عدم الصرف.")
+
         when(tab) {
             "overview"->{
                 Panel("صورة الدورة") {
-                    AmountLine("صافي المصروفات",report.expense)
-                    AmountLine("الدخل المسجل",report.income)
+                    MetricPair("صافي المصروفات",report.expense,"الدخل المسجل",report.income)
                     AmountLine("الفائض المسجل",report.surplus,if(report.surplus>=0)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
                     Hint("الفائض = الدخل − صافي المصروفات. يختلف عن رصيد الحسابات؛ التحويلات والأرصدة الافتتاحية ليست دخلًا.")
                 }
@@ -115,7 +112,8 @@ private fun decimalAmount(value:Long)=BigDecimal.valueOf(value,2).toPlainString(
             "comparison"->ComparisonAnalysis(report){title,rows->evidence(title,rows)}
             "planning"->SavingPlanner(report,model)
         }
-        Spacer(Modifier.height(80.dp))
+        if(report.coveredDays>0)Hint("الأرقام من السجل المتاح خلال ${report.coveredDays} يومًا. اليوم بلا عملية لا يثبت عدم الصرف.")
+        Spacer(Modifier.height(8.dp))
     }}
     }
     categoryId?.let{id->val cat=report.categories.firstOrNull{it.id==id}?:Analytics.emptyCategory(id)

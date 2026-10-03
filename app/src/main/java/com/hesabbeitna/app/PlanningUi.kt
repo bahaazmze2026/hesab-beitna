@@ -56,7 +56,7 @@ private fun planAmount(value: Long) = BigDecimal.valueOf(value, 2).toPlainString
                         }
                         if (LocalDate.parse(data.prefs.trackingStart) > period.start) Hint("بدأ التسجيل أثناء الدورة؛ المقارنة تغطي العمليات المتاحة فقط.")
                     }
-                    Spacer(Modifier.height(80.dp))
+                    Spacer(Modifier.height(8.dp))
                 }
                 else -> Page {
                     ScreenTitle("خطة الشهر", "خطة محفوظة لدورة الراتب، تُراجع مع تغيّر احتياجاتك")
@@ -68,11 +68,11 @@ private fun planAmount(value: Long) = BigDecimal.valueOf(value, 2).toPlainString
                         Panel("خطتك المحفوظة") {
                             AmountLine("الدخل المتوقع", saved.income)
                             Hint("موعد الدخل المخطط ${displayDate(saved.incomeDate)}")
-                            AmountLine("المصروفات اليومية", saved.variable)
-                            AmountLine("الالتزامات المحجوزة", saved.commitments)
-                            AmountLine("هدف الادخار", saved.saving)
-                            AmountLine("الاحتياطي", saved.reserve)
-                            AmountLine("غير موزع", saved.income - saved.allocated)
+                            MoneyDetail("المصروفات اليومية", saved.variable)
+                            MoneyDetail("الالتزامات المحجوزة", saved.commitments)
+                            MoneyDetail("هدف الادخار", saved.saving)
+                            MoneyDetail("الاحتياطي", saved.reserve)
+                            MoneyDetail("غير موزع", saved.income - saved.allocated)
                             if (saved.income < saved.allocated) ErrorText("الخطة تحتاج تمويلًا إضافيًا ${money(saved.allocated - saved.income)}. راجع التوزيع أو الرصيد المتاح.")
                             if (saved.note.isNotBlank()) Hint(saved.note)
                             TextButton(onClick = { editing = true }, modifier = Modifier.testTag("edit-month-plan")) { Text("تعديل الخطة") }
@@ -84,7 +84,7 @@ private fun planAmount(value: Long) = BigDecimal.valueOf(value, 2).toPlainString
                     QuickLink("تقويم الفواتير والدخل", "اختَر يومًا لمراجعة مواعيده وتسجيل السداد", "calendar") { tab = "calendar" }
                     QuickLink("القوالب السريعة", "مصروفات ودخل متكرر، بمراجعة قبل الحفظ", "star", openTemplates)
                     QuickLink("إدارة الالتزامات", "إضافة وتعديل الفواتير والأقساط", "bill", openDues)
-                    Spacer(Modifier.height(80.dp))
+                    Spacer(Modifier.height(8.dp))
                 }
             }
         }
@@ -164,6 +164,12 @@ private fun planAmount(value: Long) = BigDecimal.valueOf(value, 2).toPlainString
             TextButton(onClick = { offset++; selected = month.plusMonths(1).atDay(1).toString() }) { Text("التالي") }
         }
         Panel {
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val gridWidth=maxOf(maxWidth,336.dp)
+                val narrowGrid=maxWidth<336.dp
+                Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.horizontalScroll(rememberScrollState())) {
+                        Column(Modifier.width(gridWidth),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth()) { listOf("س", "ح", "ن", "ث", "ر", "خ", "ج").forEach { Text(it, modifier = Modifier.weight(1f)) } }
             val blank = month.atDay(1).dayOfWeek.value % 7 + 1 // Saturday first.
             val padding = blank % 7
@@ -187,6 +193,11 @@ private fun planAmount(value: Long) = BigDecimal.valueOf(value, 2).toPlainString
                     repeat(7 - week.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
+                        }
+                    }
+                    if(narrowGrid)Hint("اسحب الأسبوع أفقيًا لعرض بقية الأيام")
+                }
+            }
         }
         Hint("• يوجد موعد • الدخل المتوقع مخطط فقط • المدفوع يظهر للمراجعة")
         TextButton(onClick = { offset = java.time.temporal.ChronoUnit.MONTHS.between(YearMonth.from(period.start), YearMonth.now()).toInt(); selected = today() }) { Text("اليوم") }
@@ -205,7 +216,7 @@ private fun planAmount(value: Long) = BigDecimal.valueOf(value, 2).toPlainString
             if (dayEvents.size > limit) TextButton(onClick = { limit += 20 }) { Text("عرض المزيد") }
         }
         QuickLink("إضافة موعد فاتورة أو قسط", "إدارة الالتزامات المتكررة", "bill", openDues)
-        Spacer(Modifier.height(80.dp))
+        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -227,7 +238,7 @@ private fun planAmount(value: Long) = BigDecimal.valueOf(value, 2).toPlainString
                 Row { TextButton(onClick = { editingId = template.id }) { Text("تعديل") }; TextButton(onClick = { deleting = template }) { Text("حذف") } }
             }
         }
-        Spacer(Modifier.height(80.dp))
+        Spacer(Modifier.height(8.dp))
     }
     if (adding || editingId != null) TemplateForm(data, model, data.templates.firstOrNull { it.id == editingId }) { adding = false; editingId = null }
     deleting?.let { template -> AlertDialog(onDismissRequest = { deleting = null }, title = { Text("حذف قالب ${template.title}؟") }, text = { Text("العمليات السابقة تبقى كما هي.") },

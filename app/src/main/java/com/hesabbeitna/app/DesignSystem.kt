@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,6 +34,9 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -84,13 +90,13 @@ private val HouseTypography=Typography(
 @Composable fun Page(content:@Composable ColumnScope.()->Unit) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val side=if(maxWidth<360.dp)16.dp else 20.dp
-        Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(horizontal=side,vertical=16.dp),
-            verticalArrangement=Arrangement.spacedBy(Brand.Space24),content=content)
+        Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(horizontal=side,vertical=12.dp),
+            verticalArrangement=Arrangement.spacedBy(Brand.Space16),content=content)
     }
 }
 @Composable fun Panel(title:String?=null,content:@Composable ColumnScope.()->Unit) {
     LiquidSurface(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
             if(title!=null)Text(title,style=MaterialTheme.typography.titleLarge,modifier=Modifier.semantics{heading()});content()
         }
     }
@@ -102,7 +108,7 @@ private val HouseTypography=Typography(
     }
 }
 @Composable fun AmountLine(label:String,amount:Long,color:Color=MaterialTheme.colorScheme.primary) {
-    Column(verticalArrangement=Arrangement.spacedBy(4.dp)){Hint(label);Text(money(amount),style=MaterialTheme.typography.headlineMedium,color=color)}
+    Column(verticalArrangement=Arrangement.spacedBy(4.dp)){Hint(label);FittedMoney(amount,MaterialTheme.typography.headlineMedium,color)}
 }
 @Composable fun Mascot(size:Dp=88.dp){Image(painterResource(R.drawable.brand_cat),"قطة Meow Budget تحمل نقود الادخار",Modifier.size(size))}
 @Composable fun Empty(text:String="لا توجد عمليات مسجلة في هذه الفترة") {
@@ -111,9 +117,11 @@ private val HouseTypography=Typography(
     }}
 }
 @Composable fun Field(value:String,change:(String)->Unit,label:String,numeric:Boolean=false,secret:Boolean=false,error:String?=null) {
+    val focus=LocalFocusManager.current
     OutlinedTextField(value=value,onValueChange=change,label={Text(label)},modifier=Modifier.fillMaxWidth().heightIn(min=56.dp),shape=Brand.Input,
         singleLine=true,isError=error!=null,supportingText=if(error!=null){{Text(error)}}else null,
         keyboardOptions=KeyboardOptions(keyboardType=when{secret->KeyboardType.Password;numeric->KeyboardType.Decimal;else->KeyboardType.Text},imeAction=ImeAction.Next),
+        keyboardActions=KeyboardActions(onNext={if(!focus.moveFocus(FocusDirection.Down))focus.clearFocus()},onDone={focus.clearFocus()}),
         textStyle=MaterialTheme.typography.bodyLarge.copy(textDirection=if(numeric||label.contains("YYYY"))TextDirection.Ltr else TextDirection.Content),
         visualTransformation=if(secret)PasswordVisualTransformation()else VisualTransformation.None,
         colors=OutlinedTextFieldDefaults.colors(unfocusedContainerColor=MaterialTheme.colorScheme.surface,focusedContainerColor=MaterialTheme.colorScheme.surface))
@@ -121,7 +129,7 @@ private val HouseTypography=Typography(
 @Composable fun Choice(label:String,current:String,options:List<Pair<String,String>>,select:(String)->Unit) {
     var expanded by remember{mutableStateOf(false)}
     OutlinedButton(onClick={expanded=true},modifier=Modifier.fillMaxWidth().heightIn(min=56.dp),shape=Brand.Input,
-        border=BorderStroke(1.dp,MaterialTheme.colorScheme.outline),contentPadding=PaddingValues(16.dp)) {
+        border=BorderStroke(1.dp,MaterialTheme.colorScheme.outline),contentPadding=PaddingValues(horizontal=16.dp,vertical=10.dp)) {
         Column(Modifier.weight(1f)){Hint(label);Text(options.firstOrNull{it.first==current}?.second?:"اختر",style=MaterialTheme.typography.bodyLarge,color=MaterialTheme.colorScheme.onSurface)};ToolIcon("down")
     }
     if(expanded)ModalBottomSheet(onDismissRequest={expanded=false},containerColor=Color.Transparent) {
@@ -136,22 +144,68 @@ private val HouseTypography=Typography(
         }
     }
 }
-@Composable fun DialogForm(title:String,dismiss:()->Unit,liquid:Boolean=LocalAppearance.current.glass,content:@Composable ColumnScope.()->Unit) {
+@Composable fun DialogForm(title:String,dismiss:()->Unit,liquid:Boolean=LocalAppearance.current.glass,
+    footer:(@Composable ()->Unit)?=null,content:@Composable ColumnScope.()->Unit) {
     androidx.compose.ui.window.Dialog(onDismissRequest=dismiss,properties=DialogProperties(usePlatformDefaultWidth=false)) {
         FrostedWindow()
-        val body:@Composable ()->Unit = {
-            Column(Modifier.fillMaxWidth().heightIn(max=650.dp).verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
-                if(liquid)Box(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center){Box(Modifier.width(40.dp).height(4.dp).clip(Brand.Input).background(MaterialTheme.colorScheme.outline.copy(alpha=.45f)))}
-                Row(verticalAlignment=Alignment.CenterVertically) {
-                    if(liquid){Mascot(36.dp);Spacer(Modifier.width(10.dp))}
-                    Text(title,style=MaterialTheme.typography.headlineSmall,modifier=Modifier.weight(1f).semantics{heading()})
-                    IconButton(onClick=dismiss,modifier=Modifier.sizeIn(minWidth=48.dp,minHeight=48.dp).semantics{contentDescription="إغلاق"}){ToolIcon("close")}
-                };content();TextButton(onClick=dismiss,modifier=Modifier.fillMaxWidth().heightIn(min=48.dp)){Text("إغلاق")}
+        val header:@Composable ()->Unit = {
+            Row(verticalAlignment=Alignment.CenterVertically) {
+                if(liquid){Mascot(32.dp);Spacer(Modifier.width(8.dp))}
+                Text(title,style=MaterialTheme.typography.headlineSmall,modifier=Modifier.weight(1f).semantics{heading()})
+                IconButton(onClick=dismiss,modifier=Modifier.size(48.dp).semantics{contentDescription="إغلاق"}){ToolIcon("close")}
             }
         }
-        if(liquid)Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding(),contentAlignment=Alignment.BottomCenter) {
-            LiquidSurface(Modifier.fillMaxWidth().padding(horizontal=10.dp,vertical=8.dp),prominent=true,content=body)
-        }else GlassSurface(Modifier.fillMaxWidth().padding(horizontal=12.dp).safeDrawingPadding().imePadding(),content=body)
+        val body:@Composable ()->Unit = {
+            if(footer!=null) Column(Modifier.fillMaxWidth().heightIn(max=650.dp).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+                header()
+                Column(Modifier.weight(1f,fill=false).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp),content=content)
+                footer()
+            } else Column(Modifier.fillMaxWidth().heightIn(max=650.dp).verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+                header();content();TextButton(onClick=dismiss,modifier=Modifier.fillMaxWidth().heightIn(min=48.dp)){Text("إغلاق")}
+            }
+        }
+        Box(Modifier.fillMaxSize().safeDrawingPadding().imePadding(),contentAlignment=Alignment.BottomCenter) {
+            LiquidSurface(Modifier.fillMaxWidth().padding(horizontal=10.dp,vertical=8.dp),prominent=liquid,content=body)
+        }
+    }
+}
+/** Keep unbroken financial values complete; font scaling still applies to the fitted size. */
+@Composable fun FittedMoney(amount:Long,style:TextStyle,color:Color,modifier:Modifier=Modifier) {
+    val text=money(amount)
+    val measurer=rememberTextMeasurer()
+    val density=LocalDensity.current
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val pixels=with(density){maxWidth.roundToPx()}
+        val size=remember(text,pixels,style,density) {
+            var candidate=style.fontSize.value
+            while(candidate>14f&&measurer.measure(AnnotatedString(text),style=style.copy(fontSize=candidate.sp),softWrap=false,maxLines=1).size.width>pixels)candidate-=1f
+            candidate.sp
+        }
+        Text(text,modifier=modifier.fillMaxWidth(),style=style.copy(fontSize=size),color=color,softWrap=false,maxLines=1)
+    }
+}
+@Composable fun MetricCard(label:String,amount:Long,accent:Boolean=false,modifier:Modifier=Modifier) {
+    Surface(modifier=modifier,shape=Brand.Input,
+        color=if(accent)MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+        contentColor=if(accent)MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface) {
+        Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+            Text(label,style=MaterialTheme.typography.bodySmall)
+            FittedMoney(amount,MaterialTheme.typography.headlineSmall,LocalContentColor.current)
+        }
+    }
+}
+@Composable fun MetricPair(firstLabel:String,first:Long,secondLabel:String,second:Long) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if(maxWidth<320.dp||androidx.compose.ui.platform.LocalDensity.current.fontScale>1.3f||Finance.format(first).length>9||Finance.format(second).length>9) Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+            MetricCard(firstLabel,first,true,Modifier.fillMaxWidth());MetricCard(secondLabel,second,modifier=Modifier.fillMaxWidth())
+        } else Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+            MetricCard(firstLabel,first,true,Modifier.weight(1f));MetricCard(secondLabel,second,modifier=Modifier.weight(1f))
+        }
+    }
+}
+@Composable fun MoneyDetail(label:String,amount:Long) {
+    Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(2.dp)) {
+        Hint(label);FittedMoney(amount,MaterialTheme.typography.titleMedium,LocalContentColor.current)
     }
 }
 @Composable fun ErrorText(error:String?){if(error!=null)Surface(shape=Brand.Input,color=MaterialTheme.colorScheme.errorContainer) {
@@ -160,16 +214,15 @@ private val HouseTypography=Typography(
 }}
 @Composable fun PrimaryAction(label:String,onClick:()->Unit,enabled:Boolean=true,modifier:Modifier=Modifier){Button(onClick=onClick,enabled=enabled,modifier=modifier.fillMaxWidth().heightIn(min=56.dp),shape=Brand.Input){Text(label)}}
 @Composable fun QuickLink(title:String,detail:String,icon:String,click:()->Unit) {
-    LiquidQuickLink(title,detail,icon,click)
+    LiquidQuickLink(title,detail,icon,click=click)
 }
 @Composable fun BrandHeader(back:(()->Unit)?=null,search:(()->Unit)?=null) {
-    Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal=20.dp,vertical=12.dp),
+    Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal=16.dp,vertical=4.dp),
         verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-        Mascot(44.dp)
+        Mascot(36.dp)
         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(2.dp)) {
             Text(stringResource(R.string.app_name),style=MaterialTheme.typography.titleLarge,
                 modifier=Modifier.testTag("app-name").semantics{heading()})
-            Hint("Meow معاك، وحسابك واضح")
         }
         if(back!=null) TextButton(onClick=back,modifier=Modifier.heightIn(min=48.dp)){Text("رجوع")}
         if(search!=null)IconButton(onClick=search,modifier=Modifier.testTag("global-search").semantics{contentDescription="البحث في كل التطبيق"}){ToolIcon("search")}
@@ -252,7 +305,7 @@ private val HouseTypography=Typography(
 /** Small brand companion: one quiet message rather than a blocking assistant. */
 @Composable fun MeowMessage(title:String,detail:String) {
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-        Mascot(52.dp)
+        Mascot(44.dp)
         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)) {
             Text(title,style=MaterialTheme.typography.titleMedium);Hint(detail)
         }

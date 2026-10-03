@@ -66,7 +66,7 @@ class PlanningUiTest {
             tag("calendar-${today()}").performScrollTo().performClick(); waitText("كهرباء التقويم"); capture("calendar-light", scenario)
             compose.onNodeWithTag("calendar-pay-test-rule:${today()}").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick){it()}
             waitText("سداد كهرباء التقويم")
-            compose.onNodeWithText("حفظ").performScrollTo().performClick()
+            compose.onNodeWithText("حفظ").performClick()
             compose.waitUntil(30_000) { snapshot().transactions.size == 1 }
             assertEquals(5000L, snapshot().transactions.single().amount); assertEquals(95_000L, snapshot().balance(snapshot().accounts.single()))
             tag("nav-more").performClick(); tag("more-templates").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick){it()}; waitText("القوالب السريعة"); tag("add-template").performScrollTo().performClick()
@@ -76,7 +76,7 @@ class PlanningUiTest {
             val template = snapshot().templates.single(); tag("use-template-${template.id}").performScrollTo().performClick()
             assertEquals(1, snapshot().transactions.size)
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).assertTextContains("12.50")
-            field("المبلغ — جنيه", "15.00"); compose.onNodeWithText("حفظ").performScrollTo().performClick()
+            field("المبلغ — جنيه", "15.00"); compose.onNodeWithText("حفظ").performClick()
             compose.waitUntil(30_000) { snapshot().transactions.size == 2 }
             assertEquals(1500L, snapshot().transactions.last().amount); assertEquals(1250L, snapshot().templates.single().amount)
             val before = snapshot(); val password = "planning-test-password".toCharArray()

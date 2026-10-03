@@ -46,7 +46,7 @@ class LiquidGlassPilotTest {
         val content = tag("screen-content").fetchSemanticsNode().boundsInRoot
         val navigation = tag("nav-home").fetchSemanticsNode().boundsInRoot
         val density = context.resources.displayMetrics.density
-        assertTrue("No fixed blank band may truncate the screen above navigation", navigation.top - content.bottom < 24 * density)
+        assertTrue("Expense dock must stay outside the content viewport", content.bottom <= tag("quick-add").fetchSemanticsNode().boundsInRoot.top + density)
         tag("quick-add").assertHeightIsEqualTo(48.dp)
     }
     private fun capture(name:String,scenario:ActivityScenario<MainActivity>,black:Boolean=false) {
@@ -83,11 +83,11 @@ class LiquidGlassPilotTest {
         context.getSharedPreferences("appearance",0).edit().putString("theme","LIGHT").putBoolean("glass",true).putBoolean("reduce-effects",false).commit()
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             waitText("كل شيء أوضح");tag("liquid-home-hero").assertExists();assertCompactFooter();capture("home-light",scenario)
-            tag("quick-add").performClick();waitText("تضيف إيه؟");capture("quick-light",scenario)
+            tag("quick-options").performClick();waitText("تضيف إيه؟");capture("quick-light",scenario)
             tag("add-expense").performClick();waitText("تسجيل عملية")
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextInput("25.50")
             UiDevice.getInstance(instrumentation).pressBack();compose.waitForIdle();capture("entry-light",scenario)
-            compose.onNodeWithText("حفظ").performScrollTo().performClick()
+            compose.onNodeWithText("حفظ").performClick()
             compose.waitUntil(30_000){snapshot().transactions.size==1}
             assertEquals(2550L,snapshot().transactions.single().amount);assertEquals(97_450L,snapshot().balance(snapshot().accounts.single()))
             tag("nav-more").performClick();tag("more-settings").performScrollTo().performClick();waitText("مظهر التطبيق")
@@ -104,10 +104,10 @@ class LiquidGlassPilotTest {
             tag("nav-more").performClick();tag("more-settings").performScrollTo().performClick();waitText("مظهر التطبيق");capture("settings-black",scenario,true)
             assertEquals(ledgerBeforeNavigation,snapshot())
             tag("nav-home").performClick();waitText("كل شيء أوضح")
-            tag("quick-add").performClick();tag("add-income").performClick();tag("type-income").assertIsSelected()
+            tag("quick-options").performClick();tag("add-income").performClick();tag("type-income").assertIsSelected()
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextInput("100")
             UiDevice.getInstance(instrumentation).pressBack();compose.waitForIdle();capture("entry-black",scenario)
-            compose.onNodeWithText("حفظ").performScrollTo().performClick()
+            compose.onNodeWithText("حفظ").performClick()
             compose.waitUntil(30_000){snapshot().transactions.size==2};assertEquals(107_450L,snapshot().balance(snapshot().accounts.single()))
             tag("nav-more").performClick();tag("more-settings").performScrollTo().performClick();tag("glass-toggle").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick){it()}
             assertFalse(context.getSharedPreferences("appearance",0).getBoolean("glass",true))

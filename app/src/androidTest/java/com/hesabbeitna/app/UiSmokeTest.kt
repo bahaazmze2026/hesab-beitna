@@ -70,17 +70,17 @@ class UiSmokeTest {
             waitText("أهلًا في Meow Budget");screenshot("setup",scenario)
             compose.onNodeWithText("ابدأ Meow Budget").performScrollTo().performClick()
             waitText("كل شيء أوضح");compose.onNodeWithTag("app-name").assertIsDisplayed();screenshot("home-empty",scenario)
-            compose.onNodeWithTag("expense-fab").performScrollTo().performSemanticsAction(SemanticsActions.OnClick){it()}
+            compose.onNodeWithTag("quick-add").performClick()
             waitText("تسجيل عملية")
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextInput("0")
-            compose.onNodeWithText("حفظ").performScrollTo().performClick()
+            compose.onNodeWithText("حفظ").performClick()
             compose.onNodeWithText("المبلغ أكبر من صفر").assertExists()
             assertTrue(financialSnapshot().transactions.isEmpty())
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextReplacement("45.50")
             compose.onNodeWithText("التاريخ وطريقة الدفع والملاحظة").performScrollTo().performClick()
             compose.onNode(hasSetTextAction() and hasText("ملاحظة اختيارية")).performTextInput("اختبار شراء احتياجات البيت")
             screenshot("expense-keyboard",scenario)
-            compose.onNodeWithText("حفظ").performScrollTo().performClick()
+            compose.onNodeWithText("حفظ").performClick()
             compose.waitUntil(30_000){financialSnapshot().transactions.size==1}
             assertEquals(4550L,financialSnapshot().transactions.single().amount)
             screenshot("dashboard",scenario)
@@ -90,7 +90,7 @@ class UiSmokeTest {
             compose.onNodeWithText("تعديل").performScrollTo().performSemanticsAction(SemanticsActions.OnClick){it()}
             waitText("تعديل العملية")
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextReplacement("70.50")
-            compose.onNodeWithText("حفظ").performScrollTo().performClick()
+            compose.onNodeWithText("حفظ").performClick()
             compose.waitUntil(30_000){financialSnapshot().transactions.single().amount==7050L}
             assertEquals(1,financialSnapshot().transactions.size)
             screenshot("transactions",scenario)
@@ -134,7 +134,7 @@ class UiSmokeTest {
             scenario.recreate();waitText("مظهر التطبيق")
             compose.onNodeWithTag("glass-toggle").performScrollTo().assertIsOff().performClick().assertIsOn()
             compose.onNodeWithTag("nav-home").performClick()
-            compose.onNodeWithTag("expense-fab").performScrollTo().performSemanticsAction(SemanticsActions.OnClick){it()}
+            compose.onNodeWithTag("quick-add").performClick()
             waitText("تسجيل عملية")
             compose.onNodeWithTag("category-picker").performScrollTo().performClick()
             compose.onNodeWithTag("category-grid").assertIsDisplayed();screenshot("icon-categories",scenario)
@@ -145,7 +145,7 @@ class UiSmokeTest {
             compose.onNodeWithText("حفظ الصنف").performScrollTo().performClick()
             compose.waitUntil(30_000){financialSnapshot().categories.any{it.name=="احتياجات خاصة"}}
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performScrollTo().performTextInput("12.50")
-            compose.onNodeWithText("حفظ",useUnmergedTree=false).performScrollTo().performClick()
+            compose.onNodeWithText("حفظ",useUnmergedTree=false).performClick()
             compose.waitUntil(30_000){financialSnapshot().transactions.size==1}
             val snapshot=financialSnapshot()
             assertEquals("احتياجات خاصة",snapshot.category(snapshot.transactions.single().categoryId))
@@ -160,13 +160,13 @@ class UiSmokeTest {
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             waitText("كل شيء أوضح");screenshot("large-home",scenario)
             compose.onNodeWithTag("nav-transactions").performClick();waitText("سجل العمليات");screenshot("large-transactions",scenario)
-            compose.onNodeWithTag("quick-add").performClick();compose.onNodeWithTag("add-expense").performClick()
+            compose.onNodeWithTag("quick-add").performClick()
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).performTextInput("123.45")
             scenario.recreate()
             // The draft and open form survive recreation; no draft becomes a financial record.
             waitText("تسجيل عملية")
             compose.onNode(hasSetTextAction() and hasText("المبلغ — جنيه")).assertTextContains("123.45")
-            compose.onNodeWithText("إغلاق").performScrollTo().performClick()
+            compose.onNodeWithContentDescription("إغلاق").performClick()
             waitText("سجل العمليات");assertEquals(99_999_999_999L,financialSnapshot().transactions.single().amount)
         }
     }
