@@ -1,0 +1,59 @@
+name: Mew identity native acceptance
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/mew-identity.yml'
+      - 'app/src/main/res/**'
+      - 'app/src/androidTest/java/com/hesabbeitna/app/LauncherIconTest.kt'
+permissions:
+  contents: read
+jobs:
+  identity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build signed preview and native tests
+        run: |
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          gradle --no-daemon assembleDebug assembleDebugAndroidTest
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Check installed character, launcher and system Settings
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          disable-animations: true
+          script: |
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            mkdir -p qa
+            adb shell am instrument -w -e class com.hesabbeitna.app.LauncherIconTest -e iconStage verify com.hesabbeitna.app.preview.test/androidx.test.runner.AndroidJUnitRunner > qa/icon-runtime.txt
+            cat qa/icon-runtime.txt
+            adb pull /sdcard/Pictures/HesabBeitnaQA/ qa/screenshots/ || true
+            adb pull /sdcard/Android/data/com.hesabbeitna.app.preview/files/ qa/diagnostics/ || true
+            grep -F 'OK (1 test)' qa/icon-runtime.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mew-identity-native-qa
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            qa/

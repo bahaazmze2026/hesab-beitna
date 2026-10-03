@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.provider.MediaStore
 import android.provider.Settings
@@ -18,7 +19,6 @@ import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
-import java.io.ByteArrayOutputStream
 
 /** Run after update acceptance with Pixel Launcher enabled; finance tests need no launcher. */
 @RunWith(AndroidJUnit4::class)
@@ -40,6 +40,9 @@ class LauncherIconTest {
     }
     @Test fun installedAdaptiveIconLauncherAndSettings() {
         assumeTrue(InstrumentationRegistry.getArguments().getString("iconStage") == "verify")
+        val mascot = (context.getDrawable(R.drawable.brand_cat) as BitmapDrawable).bitmap
+        assertEquals("In-app character must use the supplied full-resolution image", 1254, mascot.width)
+        assertEquals(1254, mascot.height)
         val icon = context.packageManager.getApplicationIcon(context.packageName)
         assertTrue("Installed application must resolve to an adaptive icon", icon is AdaptiveIconDrawable)
         val foreground = (icon as AdaptiveIconDrawable).foreground
@@ -64,12 +67,18 @@ class LauncherIconTest {
         device.wait(Until.hasObject(By.pkg("com.google.android.apps.nexuslauncher")), 20_000)
         device.waitForIdle(5_000)
         screenshot("launcher-home")
-        device.swipe(device.displayWidth / 2, device.displayHeight * 85 / 100,
-            device.displayWidth / 2, device.displayHeight * 25 / 100, 25)
-        device.waitForIdle(5_000)
+        // Short shell-injected gesture avoids a hosted emulator interpreting slow
+        // UiDevice pointer delivery as a wallpaper long-press/context menu.
+        var opened = false
+        for (attempt in 1..3) {
+            device.executeShellCommand("input swipe ${device.displayWidth / 2} ${device.displayHeight * 85 / 100} ${device.displayWidth / 2} ${device.displayHeight * 25 / 100} 150")
+            screenshot("drawer-gesture-$attempt")
+            device.dumpWindowHierarchy(File(context.getExternalFilesDir(null), "drawer-$attempt.xml"))
+            if (device.wait(Until.hasObject(By.desc("All apps")), 5_000)) { opened = true; break }
+            device.pressBack(); device.waitForIdle(3_000)
+        }
         screenshot("drawer-attempt")
-        val hierarchy = ByteArrayOutputStream(); device.dumpWindowHierarchy(hierarchy)
-        println(hierarchy.toString())
+        assertTrue("Launcher must show the actual app drawer", opened)
         assertTrue("Updated app must be listed by the launcher",
             device.wait(Until.hasObject(By.text("Meow Budget")), 20_000))
         screenshot("app-drawer")

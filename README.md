@@ -1,3 +1,7 @@
+## Meow Budget 1.6.3 — Mew identity across application screens
+
+Replaces the separate in-app character with the original transparent PNG in every shared header, empty state and mascot location, and derives notification silhouettes from the same character. Removes mascot corner clipping. [Acceptance details](docs/mew-in-app-1.6.3.md).
+
 ## Meow Budget 1.6.2 — original Mew launcher icon
 
 Uses the supplied transparent PNG with an ivory adaptive background, safe geometry and all five densities. API 35 app drawer and Settings captures, compiled PNG equality, signature verification and update over the actual delivered 1.6.1 APK passed. [Acceptance and APK details](docs/mew-icon-1.6.2.md).
