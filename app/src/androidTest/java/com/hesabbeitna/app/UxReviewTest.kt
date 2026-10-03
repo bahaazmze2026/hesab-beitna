@@ -123,6 +123,9 @@ class UxReviewTest {
             compose.onNodeWithTag("home-main-amount").performSemanticsAction(SemanticsActions.GetTextLayoutResult){it(layouts)}
             assertFalse("Main amount must not truncate at 150% font",layouts.single().didOverflowWidth)
             capture("home-dark-large-font",scenario)
+            click("nav-plan");compose.onNodeWithTag("plan-calendar").performClick();waitText("التقويم المالي")
+            compose.onNodeWithTag("calendar-${today()}").performScrollTo().assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).performClick()
+            capture("calendar-large-font",scenario)
             } catch(error:Throwable) {
                 capture("failure",scenario)
                 UiDevice.getInstance(instrumentation).dumpWindowHierarchy(File(context.getExternalFilesDir(null),"ux-small-failure.xml"))

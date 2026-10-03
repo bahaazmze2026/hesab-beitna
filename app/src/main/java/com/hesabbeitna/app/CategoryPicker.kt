@@ -61,7 +61,7 @@ private val categoryTints=listOf("green" to "أخضر","orange" to "برتقال
                 }
                 if(!creating) {
                     val ordered=remember(categories,transactions){val counts=transactions.groupingBy{it.categoryId}.eachCount();categories.sortedByDescending{counts[it.id]?:0}}
-                    LazyVerticalGrid(columns=GridCells.Adaptive(96.dp),modifier=Modifier.fillMaxWidth().heightIn(max=360.dp).testTag("category-grid"),
+                    LazyVerticalGrid(columns=GridCells.Adaptive(if(androidx.compose.ui.platform.LocalDensity.current.fontScale>1.3f)144.dp else 96.dp),modifier=Modifier.fillMaxWidth().heightIn(max=360.dp).testTag("category-grid"),
                         horizontalArrangement=Arrangement.spacedBy(10.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
                         items(ordered,key={it.id}) {cat->CategoryTile(cat.name,appearance.icon(cat),appearance.tint(cat.id),cat.id==current,"category-${cat.id}") {select(cat.id);expanded=false}}
                         item {CategoryTile("إضافة صنف","plus","orange",tag="new-category") {creating=true;error=null}}

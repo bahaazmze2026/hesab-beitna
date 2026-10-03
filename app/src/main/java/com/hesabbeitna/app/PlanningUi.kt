@@ -164,6 +164,11 @@ private fun planAmount(value: Long) = BigDecimal.valueOf(value, 2).toPlainString
             TextButton(onClick = { offset++; selected = month.plusMonths(1).atDay(1).toString() }) { Text("التالي") }
         }
         Panel {
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val gridWidth=maxOf(maxWidth,336.dp)
+                Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.horizontalScroll(rememberScrollState())) {
+                        Column(Modifier.width(gridWidth),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth()) { listOf("س", "ح", "ن", "ث", "ر", "خ", "ج").forEach { Text(it, modifier = Modifier.weight(1f)) } }
             val blank = month.atDay(1).dayOfWeek.value % 7 + 1 // Saturday first.
             val padding = blank % 7
@@ -185,6 +190,11 @@ private fun planAmount(value: Long) = BigDecimal.valueOf(value, 2).toPlainString
                         }
                     }
                     repeat(7 - week.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
+                        }
+                    }
+                    if(maxWidth<336.dp)Hint("اسحب الأسبوع أفقيًا لعرض بقية الأيام")
                 }
             }
         }
