@@ -166,6 +166,7 @@ private fun planAmount(value: Long) = BigDecimal.valueOf(value, 2).toPlainString
         Panel {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val gridWidth=maxOf(maxWidth,336.dp)
+                val narrowGrid=maxWidth<336.dp
                 Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
                     Column(Modifier.horizontalScroll(rememberScrollState())) {
                         Column(Modifier.width(gridWidth),verticalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -194,7 +195,7 @@ private fun planAmount(value: Long) = BigDecimal.valueOf(value, 2).toPlainString
             }
                         }
                     }
-                    if(maxWidth<336.dp)Hint("اسحب الأسبوع أفقيًا لعرض بقية الأيام")
+                    if(narrowGrid)Hint("اسحب الأسبوع أفقيًا لعرض بقية الأيام")
                 }
             }
         }
