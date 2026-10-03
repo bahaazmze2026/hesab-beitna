@@ -211,13 +211,13 @@ import java.time.temporal.ChronoUnit
         ScreenTitle("كل شيء أوضح", "نظرة هادئة على أموال بيتك")
         LiquidSurface(Modifier.fillMaxWidth().testTag("liquid-home-hero"),prominent=true) {
             Column(Modifier.fillMaxWidth().padding(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                val headline=available?:data.accounts.sumOf{data.balance(it)}
                 Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                     Column(Modifier.weight(1f)) {
                         Text(if(available!=null)"المتاح بعد الالتزامات"else"أرصدة حساباتك الحالية",style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                        val headline=available?:data.accounts.sumOf{data.balance(it)}
-                        Text(money(headline),modifier=Modifier.testTag("home-main-amount"),style=MaterialTheme.typography.displaySmall,color=if(headline>=0)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                        FittedMoney(headline,MaterialTheme.typography.displaySmall,if(headline>=0)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,Modifier.testTag("home-main-amount"))
                     }
-                    if(LocalDensity.current.fontScale<=1.3f)Mascot(48.dp)
+                    if(LocalDensity.current.fontScale<=1.3f&&Finance.format(headline).length<=10)Mascot(48.dp)
                 }
                 Hint(if(available!=null)"الميزانية − صافي الصرف − الالتزامات غير المدفوعة"else"رصيد الحسابات؛ حدد ميزانية لمعرفة المتاح للصرف")
                 TextButton(onClick=if(available!=null)dues else budgetOpen){Text(if(available!=null)"محجوز للالتزامات ${money(committed)}"else"تحديد ميزانية البيت")}

@@ -34,6 +34,9 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -105,7 +108,7 @@ private val HouseTypography=Typography(
     }
 }
 @Composable fun AmountLine(label:String,amount:Long,color:Color=MaterialTheme.colorScheme.primary) {
-    Column(verticalArrangement=Arrangement.spacedBy(4.dp)){Hint(label);Text(money(amount),style=MaterialTheme.typography.headlineMedium,color=color)}
+    Column(verticalArrangement=Arrangement.spacedBy(4.dp)){Hint(label);FittedMoney(amount,MaterialTheme.typography.headlineMedium,color)}
 }
 @Composable fun Mascot(size:Dp=88.dp){Image(painterResource(R.drawable.brand_cat),"قطة Meow Budget تحمل نقود الادخار",Modifier.size(size))}
 @Composable fun Empty(text:String="لا توجد عمليات مسجلة في هذه الفترة") {
@@ -166,19 +169,34 @@ private val HouseTypography=Typography(
         }
     }
 }
+/** Keep unbroken financial values complete; font scaling still applies to the fitted size. */
+@Composable fun FittedMoney(amount:Long,style:TextStyle,color:Color,modifier:Modifier=Modifier) {
+    val text=money(amount)
+    val measurer=rememberTextMeasurer()
+    val density=LocalDensity.current
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val pixels=with(density){maxWidth.roundToPx()}
+        val size=remember(text,pixels,style,density) {
+            var candidate=style.fontSize.value
+            while(candidate>14f&&measurer.measure(AnnotatedString(text),style=style.copy(fontSize=candidate.sp),softWrap=false,maxLines=1).size.width>pixels)candidate-=1f
+            candidate.sp
+        }
+        Text(text,modifier=modifier.fillMaxWidth(),style=style.copy(fontSize=size),color=color,softWrap=false,maxLines=1)
+    }
+}
 @Composable fun MetricCard(label:String,amount:Long,accent:Boolean=false,modifier:Modifier=Modifier) {
     Surface(modifier=modifier,shape=Brand.Input,
         color=if(accent)MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
         contentColor=if(accent)MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface) {
         Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
             Text(label,style=MaterialTheme.typography.bodySmall)
-            Text(money(amount),style=MaterialTheme.typography.headlineSmall)
+            FittedMoney(amount,MaterialTheme.typography.headlineSmall,LocalContentColor.current)
         }
     }
 }
 @Composable fun MetricPair(firstLabel:String,first:Long,secondLabel:String,second:Long) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        if(maxWidth<320.dp||androidx.compose.ui.platform.LocalDensity.current.fontScale>1.3f) Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+        if(maxWidth<320.dp||androidx.compose.ui.platform.LocalDensity.current.fontScale>1.3f||Finance.format(first).length>9||Finance.format(second).length>9) Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
             MetricCard(firstLabel,first,true,Modifier.fillMaxWidth());MetricCard(secondLabel,second,modifier=Modifier.fillMaxWidth())
         } else Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) {
             MetricCard(firstLabel,first,true,Modifier.weight(1f));MetricCard(secondLabel,second,modifier=Modifier.weight(1f))
@@ -187,7 +205,7 @@ private val HouseTypography=Typography(
 }
 @Composable fun MoneyDetail(label:String,amount:Long) {
     Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(2.dp)) {
-        Hint(label);Text(money(amount),style=MaterialTheme.typography.titleMedium)
+        Hint(label);FittedMoney(amount,MaterialTheme.typography.titleMedium,LocalContentColor.current)
     }
 }
 @Composable fun ErrorText(error:String?){if(error!=null)Surface(shape=Brand.Input,color=MaterialTheme.colorScheme.errorContainer) {
