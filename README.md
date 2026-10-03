@@ -1,3 +1,7 @@
+## Meow Budget 1.6.2 — original Mew launcher icon
+
+Uses the supplied transparent PNG with an ivory adaptive background, safe geometry and all five densities. API 35 app drawer and Settings captures, compiled PNG equality, signature verification and update over the actual delivered 1.6.1 APK passed. [Acceptance and APK details](docs/mew-icon-1.6.2.md).
+
 ## Meow Budget 1.6.1 — compact footer and dark text fix
 
 Removes the fixed blank band above navigation, reduces the bottom bar and add button, and restores readable default text colors across dark glass surfaces. Build/lint, 38 unit tests, 12 Android tests and separate 8→9 update stages passed. [Acceptance and APK details](docs/compact-layout-1.6.1.md).
