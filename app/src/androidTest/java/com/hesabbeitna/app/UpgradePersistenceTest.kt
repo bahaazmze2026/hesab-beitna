@@ -26,7 +26,7 @@ class UpgradePersistenceTest {
         Repository(context).save(expected())
         context.getSharedPreferences("appearance", 0).edit().putString("theme", "DARK").putBoolean("glass", false).putBoolean("reduce-effects",true).commit()
         assertEquals(expected(), Repository(context).load())
-        assertEquals(8L, context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode)
+        assertEquals(9L, context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode)
     }
     @Test fun verifyAfterUpdate() = runBlocking {
         assumeTrue(InstrumentationRegistry.getArguments().getString("upgradeStage") == "verify")
@@ -35,6 +35,6 @@ class UpgradePersistenceTest {
         assertEquals("DARK", context.getSharedPreferences("appearance", 0).getString("theme", ""))
         assertTrue(context.getSharedPreferences("appearance", 0).getBoolean("reduce-effects", false))
         assertFalse(context.getSharedPreferences("appearance", 0).getBoolean("glass", true))
-        assertEquals(9L, context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode)
+        assertEquals(10L, context.packageManager.getPackageInfo(context.packageName, 0).longVersionCode)
     }
 }
