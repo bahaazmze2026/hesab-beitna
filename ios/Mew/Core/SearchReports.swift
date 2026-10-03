@@ -1,7 +1,7 @@
 import Foundation
 struct SearchHit: Identifiable { var id: String; var kind: String; var title: String; var detail: String }
 enum Search {
-    static func normalize(_ value: String) -> String { Finance.normalized(value).folding(options:[.diacriticInsensitive,.widthInsensitive],locale:Locale(identifier:"ar")).replacingOccurrences(of:"ـ",with:"").replacingOccurrences(of:"أ",with:"ا").replacingOccurrences(of:"إ",with:"ا").replacingOccurrences(of:"آ",with:"ا").lowercased() }
+    static func normalize(_ value: String) -> String { String(String.UnicodeScalarView(Finance.normalized(value).decomposedStringWithCompatibilityMapping.unicodeScalars.filter { !CharacterSet.nonBaseCharacters.contains($0) })).replacingOccurrences(of:"ـ",with:"").replacingOccurrences(of:"أ",with:"ا").replacingOccurrences(of:"إ",with:"ا").replacingOccurrences(of:"آ",with:"ا").lowercased() }
     static func hits(_ h: Household, query: String) -> [SearchHit] {
         let terms=normalize(query).split(whereSeparator:{$0.isWhitespace}); guard !terms.isEmpty else { return [] }; func match(_ s: String) -> Bool { let v=normalize(s); return terms.allSatisfy { v.contains($0) } }
         var out:[SearchHit]=[]
