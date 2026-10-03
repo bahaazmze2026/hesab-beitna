@@ -50,7 +50,10 @@ import java.time.LocalDate
         if(dates==null||dates.days()<=0) ErrorText("راجع نطاق التاريخ")
         Hint("نطاق البحث: ${displayDate(from)} إلى ${displayDate(to)}")
         Hint("${list.size} عملية تطابق الاختيار")
-        if(list.isEmpty()) Empty()
+        if(list.isEmpty()) {
+            Empty()
+            if(search.isNotBlank()||category.isNotBlank()||account.isNotBlank()||type.isNotBlank()) OutlinedButton(onClick={search="";category="";account="";type="";from=period.start.toString();to=period.end.minusDays(1).toString()},modifier=Modifier.fillMaxWidth().heightIn(min=48.dp)){Text("مسح التصفية وعرض الدورة")}
+        }
         var previousDate=""
         list.take(limit).forEach {t->
             if(previousDate!=t.date) {Text(displayDate(t.date),fontWeight=FontWeight.Bold);previousDate=t.date}
@@ -72,7 +75,7 @@ import java.time.LocalDate
             }
         }
         if(list.size>limit) OutlinedButton(onClick={limit+=100},modifier=Modifier.fillMaxWidth()) {Text("عرض 100 عملية أخرى")}
-        Spacer(Modifier.height(80.dp))
+        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -86,6 +89,16 @@ import java.time.LocalDate
     val budgets=data.budgets.filter {it.period==period.start.toString()}
     Page {
         ScreenTitle("ميزانية الدورة")
+        data.budget(period)?.let { total ->
+            val expense=Finance.expense(data.entries(),period)
+            LiquidSurface(Modifier.fillMaxWidth().testTag("budget-summary"),prominent=true) {
+                Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+                    AmountLine("المتبقي من ميزانية البيت",total.amount-expense,if(expense>total.amount)MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+                    LinearProgressIndicator(progress={if(total.amount>0)(expense.toFloat()/total.amount).coerceIn(0f,1f)else 0f},modifier=Modifier.fillMaxWidth())
+                    Hint("المحدد ${money(total.amount)} • المصروف ${money(expense)}")
+                }
+            }
+        }
         Panel("تحديد الميزانية") {
             Choice("الميزانية",category,listOf("" to "البيت بالكامل")+data.categories.filter {!it.income&&!it.archived}.map {it.id to it.name}) {category=it}
             Field(amount,{amount=it},"المبلغ المحدد — جنيه",true)
@@ -120,7 +133,7 @@ import java.time.LocalDate
                 current.copy(budgets=current.budgets+additions)
             }
         },modifier=Modifier.fillMaxWidth()) {Text("نسخ للدورة التالية دون استبدال ميزانية موجودة")}
-        Spacer(Modifier.height(80.dp))
+        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -163,7 +176,7 @@ import java.time.LocalDate
             }
             Hint("الإيقاف يحذف الاستحقاقات المستقبلية غير المدفوعة لهذا التكرار؛ السجلات السابقة والسداد تبقى.")
         }
-        Spacer(Modifier.height(80.dp))
+        Spacer(Modifier.height(8.dp))
     }
     if(adding) BillForm(data,model,{adding=false})
     editing?.let {BillForm(data,model,{editing=null},it)}
@@ -181,7 +194,7 @@ import java.time.LocalDate
             Hint("${account.kind}${if(account.archived)" • مؤرشف"else""}")
             AmountLine("الرصيد الحالي",data.balance(account))
             Hint("افتتاحي ${money(account.opening)} في ${data.prefs.trackingStart}")
-            Row {
+            FlowRow {
                 TextButton(onClick={editing=account}) {Text("تعديل")}
                 if(!account.archived) TextButton(onClick={model.change {it.copy(prefs=it.prefs.copy(defaultAccount=account.id))}}) {Text(if(data.prefs.defaultAccount==account.id)"افتراضي ✓"else"اجعله افتراضيًا")}
             }
@@ -204,7 +217,7 @@ import java.time.LocalDate
             OutlinedButton(onClick={goal=true}) {Text("تحديد أو تعديل الهدف")}
         }
         Hint("يسمح برصيد سالب عند تسجيل صرف أكبر من الرصيد؛ يظهر بوضوح كي تراجع السجلات. لا تُنشأ مداخيل وهمية لتسويته.")
-        Spacer(Modifier.height(80.dp))
+        Spacer(Modifier.height(8.dp))
     }
     editing?.let {AccountForm(data,model,{editing=null},it)}
     if(goal) GoalForm(data,model,{goal=false})
@@ -286,7 +299,7 @@ import java.time.LocalDate
             Hint("التصدير يستخدم الدورة التي اخترتها من الرئيسية. ملف التقرير ليس بديلًا عن النسخة الاحتياطية.")
         }
         Panel("التنبيهات") {Button(onClick=notifications) {Text("تفعيل إذن تذكير الفواتير")};Hint("تذكير يومي تقريبي؛ قد تؤخره إدارة بطارية الهاتف. لا يعرض تفاصيل مالية على شاشة القفل.")}
-        Panel("عن Meow Budget") {Text("الإصدار 1.6.3 • معاينة Liquid Glass • هوية القطة والمحفظة");Hint("تطبيق محلي دون إذن الإنترنت. التوصيات حسابية ومفسرة، والتوقعات منفصلة عن النتائج الفعلية.")}
+        Panel("عن Meow Budget") {Text("الإصدار 1.7.0 • توزيع أوضح وإضافة مصروف أسرع");Hint("تطبيق محلي دون إذن الإنترنت. التوصيات حسابية ومفسرة، والتوقعات منفصلة عن النتائج الفعلية.")}
         Spacer(Modifier.height(32.dp))
     }
     if(category) CategoriesForm(data,model,{category=false})

@@ -6,6 +6,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.math.BigDecimal
@@ -41,12 +44,37 @@ private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString(
         submitted=true
         model.saveTransaction(t,feeAmount,feeId,template=if(saveAsTemplate&&t.type in listOf(TxType.EXPENSE,TxType.INCOME))QuickTemplate(templateKey,templateTitle.trim(),t.type,t.amount,t.accountId,requireNotNull(t.categoryId),t.note)else null) {success->if(success)dismiss()else submitted=false}
     }
-    DialogForm(if(editing!=null) "تعديل العملية" else if(due!=null) "سداد ${due.title}" else "تسجيل عملية",dismiss,liquid=true) {
+    val save:()->Unit = save@{try {
+            if(saveAsTemplate&&type in listOf(TxType.EXPENSE,TxType.INCOME))require(templateTitle.isNotBlank()){"أدخل اسم القالب"}
+            error=null
+            val value=runCatching{Finance.money(amount)}.getOrNull()
+            amountError=if(value==null)"أدخل مبلغًا صالحًا، بحد أقصى خانتين عشريتين"else if(value<=0)"المبلغ أكبر من صفر"else null
+            val parsedDate=runCatching{LocalDate.parse(date)}.getOrNull()
+            dateError=when {parsedDate==null->"اكتب التاريخ بصيغة YYYY-MM-DD";parsedDate<LocalDate.parse(data.prefs.trackingStart)->"التاريخ يسبق بدء المتابعة";parsedDate>LocalDate.now()->"العملية الفعلية لا تكون في المستقبل";else->null}
+            if(dateError!=null)details=true
+            if(amountError!=null||dateError!=null)return@save
+            requireNotNull(value)
+            val tx=Transaction(id=id,type=type,amount=value,date=date,accountId=account,
+                destinationId=if(type==TxType.TRANSFER) destination else null,
+                categoryId=if(type==TxType.TRANSFER)null else category,payment=payment,note=note.trim(),
+                originalId=editing?.originalId,dueId=editing?.dueId?:due?.id,created=editing?.created?:System.currentTimeMillis())
+            val feeAmount=if(type==TxType.TRANSFER&&editing==null)Finance.money(fee)else 0L
+            data.copy(transactions=data.transactions.filterNot {it.id==id}+tx).validate()
+            val similar=data.transactions.any {it.id!=id&&it.type==tx.type&&it.amount==tx.amount&&it.date==tx.date&&it.accountId==tx.accountId&&it.categoryId==tx.categoryId&&it.destinationId==tx.destinationId}
+            if(similar&&editing==null) {pending=tx;pendingFee=feeAmount;duplicate=true}
+            else submit(tx,feeAmount)
+        }catch(e:Exception){error=userError(e)}}
+    DialogForm(if(editing!=null) "تعديل العملية" else if(due!=null) "سداد ${due.title}" else "تسجيل عملية",dismiss,liquid=true,footer={
+        PrimaryAction(if(submitted)"جارٍ الحفظ…"else"حفظ",save,enabled=!submitted,modifier=Modifier.testTag("save-transaction"))
+    }) {
         LiquidAmountField(amount,{amount=it;amountError=null},amountError)
-        if(due==null && editing==null) LiquidActionGrid(listOf(
-            HubAction("type-expense","مصروف","cart"),HubAction("type-income","دخل","wallet"),HubAction("type-transfer","تحويل","transfer")),selected="type-${type.name.lowercase()}") {key->
-            type=when(key){"type-income"->TxType.INCOME;"type-transfer"->TxType.TRANSFER;else->TxType.EXPENSE}
-            category=data.categories.firstOrNull {it.income==(type==TxType.INCOME)&&!it.archived}?.id?:""
+        if(due==null && editing==null) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            listOf(TxType.EXPENSE to "مصروف",TxType.INCOME to "دخل",TxType.TRANSFER to "تحويل").forEach { (option,label) ->
+                FilterChip(selected=type==option,onClick={
+                    type=option
+                    category=data.categories.firstOrNull {it.income==(type==TxType.INCOME)&&!it.archived}?.id?:""
+                },label={Text(label)},modifier=Modifier.heightIn(min=48.dp).testTag("type-${option.name.lowercase()}"))
+            }
         } else Hint("${typeLabel(type)}${if(due!=null) " • المتبقي ${money(data.remaining(due))}" else ""}")
         if(type!=TxType.TRANSFER) {
             val cats=data.categories.filter {it.income==(type==TxType.INCOME)&&(!it.archived||it.id==category)}
@@ -68,32 +96,14 @@ private fun amountText(value: Long) = BigDecimal.valueOf(value,2).toPlainString(
             Field(date,{date=it;dateError=null},"التاريخ YYYY-MM-DD",error=dateError)
             Choice("طريقة الدفع",payment,listOf("نقد","حساب بنكي","محفظة","بطاقة","أخرى").map {it to it}) {payment=it}
             Field(note,{note=it.take(500)},"ملاحظة اختيارية")
-        } else Hint("التاريخ $date • $payment")
         if(editing==null&&due==null&&type in listOf(TxType.EXPENSE,TxType.INCOME)&&data.templates.size<100) {
             Row { Checkbox(checked=saveAsTemplate,onCheckedChange={saveAsTemplate=it});Text("حفظ نسخة كقالب سريع",modifier=Modifier.padding(top=12.dp)) }
             if(saveAsTemplate)Field(templateTitle,{templateTitle=it.take(60)},"اسم القالب")
         }
+        } else Hint("التاريخ $date • $payment")
+
         ErrorText(error)
-        Button(onClick={try {
-            if(saveAsTemplate&&type in listOf(TxType.EXPENSE,TxType.INCOME))require(templateTitle.isNotBlank()){"أدخل اسم القالب"}
-            error=null
-            val value=runCatching{Finance.money(amount)}.getOrNull()
-            amountError=if(value==null)"أدخل مبلغًا صالحًا، بحد أقصى خانتين عشريتين"else if(value<=0)"المبلغ أكبر من صفر"else null
-            val parsedDate=runCatching{LocalDate.parse(date)}.getOrNull()
-            dateError=when {parsedDate==null->"اكتب التاريخ بصيغة YYYY-MM-DD";parsedDate<LocalDate.parse(data.prefs.trackingStart)->"التاريخ يسبق بدء المتابعة";parsedDate>LocalDate.now()->"العملية الفعلية لا تكون في المستقبل";else->null}
-            if(dateError!=null)details=true
-            if(amountError!=null||dateError!=null)return@Button
-            requireNotNull(value)
-            val tx=Transaction(id=id,type=type,amount=value,date=date,accountId=account,
-                destinationId=if(type==TxType.TRANSFER) destination else null,
-                categoryId=if(type==TxType.TRANSFER)null else category,payment=payment,note=note.trim(),
-                originalId=editing?.originalId,dueId=editing?.dueId?:due?.id,created=editing?.created?:System.currentTimeMillis())
-            val feeAmount=if(type==TxType.TRANSFER&&editing==null)Finance.money(fee)else 0L
-            data.copy(transactions=data.transactions.filterNot {it.id==id}+tx).validate()
-            val similar=data.transactions.any {it.id!=id&&it.type==tx.type&&it.amount==tx.amount&&it.date==tx.date&&it.accountId==tx.accountId&&it.categoryId==tx.categoryId&&it.destinationId==tx.destinationId}
-            if(similar&&editing==null) {pending=tx;pendingFee=feeAmount;duplicate=true}
-            else submit(tx,feeAmount)
-        }catch(e:Exception){error=userError(e)}},enabled=!submitted,modifier=Modifier.fillMaxWidth()) {Text(if(submitted)"جارٍ الحفظ…"else"حفظ")}
+
     }
     if(duplicate) AlertDialog(onDismissRequest={duplicate=false},title={Text("عملية مشابهة موجودة")},
         text={Text("هناك عملية بنفس النوع والمبلغ والتاريخ والحساب. هل هذه عملية أخرى مقصودة؟")},

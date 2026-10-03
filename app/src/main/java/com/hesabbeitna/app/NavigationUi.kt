@@ -40,7 +40,7 @@ data class HubAction(val key:String,val title:String,val icon:String)
             HubAction("more-backup","نسخة احتياطية","shield"),HubAction("more-restore","استعادة البيانات","shield"),
             HubAction("more-export","التقارير والتصدير","chart"),HubAction("more-settings","المظهر والإعدادات","settings"),HubAction("more-templates","القوالب السريعة","star")),click=open)
         Hint("اختيار الفاتح أو الأسود والمظهر الزجاجي من المظهر والإعدادات")
-        Spacer(Modifier.height(72.dp))
+        Spacer(Modifier.height(8.dp))
     }
 }
 @Composable fun SearchScreen(data:Household,open:(SearchHit)->Unit,navigate:(String)->Unit) {
@@ -70,7 +70,7 @@ data class HubAction(val key:String,val title:String,val icon:String)
                 if(rows.isNotEmpty())Panel(label){rows.forEach{hit->QuickLink(hit.title,hit.detail,when(kind){"account"->"wallet";"category"->"cart";"due"->"bill";else->"list"}){open(hit)}}}
             }
         }
-        Spacer(Modifier.height(72.dp))
+        Spacer(Modifier.height(8.dp))
     }
 }
 @Composable fun SearchDetail(data:Household,hit:SearchHit,dismiss:()->Unit,edit:(Transaction)->Unit,pay:(Due)->Unit) {

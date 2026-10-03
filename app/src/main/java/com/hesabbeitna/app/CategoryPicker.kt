@@ -29,7 +29,7 @@ private val categoryTints=listOf("green" to "أخضر","orange" to "برتقال
                 Box(Modifier.size(44.dp),contentAlignment=Alignment.Center){ToolIcon(icon,colors.onSurface)}
             }
             Text(label,style=MaterialTheme.typography.labelLarge)
-            if(chosen)Text("مختار",style=MaterialTheme.typography.labelSmall,color=colors.primary)
+            Text(if(chosen)"مختار"else" ",style=MaterialTheme.typography.labelSmall,color=colors.primary)
         }
     }
 }

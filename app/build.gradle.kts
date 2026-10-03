@@ -18,8 +18,8 @@ android {
         applicationId = "com.hesabbeitna.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = providers.gradleProperty("previewVersionCode").orNull?.toInt() ?: 11
-        versionName = "1.6.3"
+        versionCode = providers.gradleProperty("previewVersionCode").orNull?.toInt() ?: 12
+        versionName = "1.7.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
