@@ -1,0 +1,6 @@
+build/
+.build/
+Tests/Fixtures/finance-vectors.json
+Mew/Assets.xcassets/AppIcon.appiconset/
+*.xcuserstate
+xcuserdata/

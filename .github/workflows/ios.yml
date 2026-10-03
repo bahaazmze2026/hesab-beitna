@@ -1,0 +1,96 @@
+name: Mew iOS build and acceptance
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ["ios/**", ".github/workflows/ios.yml"]
+  push:
+    branches: [main]
+    paths: ["ios/**", ".github/workflows/ios.yml"]
+defaults:
+  run:
+    shell: bash
+permissions:
+  contents: read
+jobs:
+  core:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Swift compiler and Android golden parity
+        env:
+          MEW_INTEROP_OUTPUT: ${{ github.workspace }}/ios/build/swift-backup.hbb
+        run: |
+          mkdir -p ios/build/java
+          javac -encoding UTF-8 -d ios/build/java app/src/main/java/com/hesabbeitna/app/Finance.java app/src/main/java/com/hesabbeitna/app/BackupCrypto.java ios/scripts/AndroidInterop.java
+          java -cp ios/build/java AndroidInterop seed ios/Tests/Fixtures/android.json ios/Tests/Fixtures/android-backup.hbb ios/Tests/Fixtures/finance-vectors.json
+          cd ios
+          swift test 2>&1 | tee build/core-tests.log
+          java -cp build/java AndroidInterop verify build/swift-backup.hbb | tee build/interop-result.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mew-ios-core-reports
+          path: ios/build
+  native:
+    needs: core
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare native project and unchanged cat assets
+        run: |
+          bash ios/scripts/prepare_assets.sh
+          python3 ios/scripts/generate_project.py
+          xcodebuild -version
+          python3 - <<'PYCODE'
+          import json,subprocess,os
+          devices=json.loads(subprocess.check_output(['xcrun','simctl','list','devices','available','-j']))['devices']
+          phones=[d for rows in devices.values() for d in rows if 'iPhone' in d['name']]
+          assert phones,'No iPhone runtime installed'
+          chosen=next((d for d in phones if 'SE (3rd' in d['name']),None) or next((d for d in phones if d['name']=='iPhone 16'),phones[0])
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('MEW_SIMULATOR='+chosen['udid']+'\n')
+          print('Native acceptance device:',chosen['name'],chosen['udid'])
+          PYCODE
+      - name: Compile and test native iPhone app
+        run: |
+          mkdir -p ios/build
+          xcodebuild -project ios/Mew.xcodeproj -scheme Mew -configuration Debug -destination "id=$MEW_SIMULATOR" -derivedDataPath ios/build/DerivedData -resultBundlePath ios/build/Acceptance.xcresult -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO test 2>&1 | tee ios/build/native-tests.log
+      - name: Compile production simulator and unsigned device archive
+        run: |
+          xcodebuild -project ios/Mew.xcodeproj -scheme Mew -configuration Release -destination 'generic/platform=iOS Simulator' -derivedDataPath ios/build/ReleaseSimulator CODE_SIGNING_ALLOWED=NO build 2>&1 | tee ios/build/release-simulator.log
+          ditto -c -k --keepParent ios/build/ReleaseSimulator/Build/Products/Release-iphonesimulator/Mew.app ios/build/Mew-iOS-Simulator.zip
+          xcodebuild -project ios/Mew.xcodeproj -scheme Mew -configuration Release -destination 'generic/platform=iOS' -archivePath ios/build/Mew-unsigned.xcarchive CODE_SIGNING_ALLOWED=NO archive 2>&1 | tee ios/build/device-archive.log
+          ditto -c -k --keepParent ios/build/Mew-unsigned.xcarchive ios/build/Mew-iOS-Unsigned-Archive.zip
+          python3 - <<'PYCODE'
+          import subprocess,plistlib,json,hashlib
+          from pathlib import Path
+          p=Path('ios/build/ReleaseSimulator/Build/Products/Release-iphonesimulator/Mew.app')
+          info=plistlib.loads((p/'Info.plist').read_bytes())
+          assert info['CFBundleDisplayName']=='Mew'
+          assert info['CFBundleIdentifier']=='com.hesabbeitna.mew.ios'
+          assert (p/'Assets.car').stat().st_size>1000
+          assert hashlib.sha256(Path('ios/Mew/Assets.xcassets/Cat.imageset/cat.png').read_bytes()).hexdigest()=='6c1c8390b51cf669b966dbc199a821640761c3835dbfd3c5257886b549dabcef'
+          print(json.dumps({'result':'PASS','bundle':info['CFBundleIdentifier'],'name':info['CFBundleDisplayName'],'version':info['CFBundleShortVersionString'],'icon':info.get('CFBundleIcons'),'signing':'unsigned device archive; simulator build only'},indent=2))
+          PYCODE
+      - name: Export actual XCTest screenshots
+        if: always()
+        run: |
+          mkdir -p ios/build/screenshots
+          if [ -d ios/build/Acceptance.xcresult ]; then
+            xcrun xcresulttool export attachments --path ios/build/Acceptance.xcresult --output-path ios/build/screenshots || true
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mew-ios-native-app-and-evidence
+          path: |
+            ios/build/*.zip
+            ios/build/*.log
+            ios/build/Acceptance.xcresult
+            ios/build/screenshots
+            ios/Mew/Assets.xcassets/AppIcon.appiconset

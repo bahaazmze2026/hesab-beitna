@@ -1,0 +1,19 @@
+import Foundation
+struct SearchHit: Identifiable { var id: String; var kind: String; var title: String; var detail: String }
+enum Search {
+    static func normalize(_ value: String) -> String { String(String.UnicodeScalarView(Finance.normalized(value).decomposedStringWithCompatibilityMapping.unicodeScalars.filter { !CharacterSet.nonBaseCharacters.contains($0) })).replacingOccurrences(of:"ـ",with:"").replacingOccurrences(of:"أ",with:"ا").replacingOccurrences(of:"إ",with:"ا").replacingOccurrences(of:"آ",with:"ا").lowercased() }
+    static func hits(_ h: Household, query: String) -> [SearchHit] {
+        let terms=normalize(query).split(whereSeparator:{$0.isWhitespace}); guard !terms.isEmpty else { return [] }; func match(_ s: String) -> Bool { let v=normalize(s); return terms.allSatisfy { v.contains($0) } }
+        var out:[SearchHit]=[]
+        for (id,title) in [("accounts","الحسابات والمحافظ"),("budget","الميزانيات"),("dues","الفواتير والأقساط"),("settings","المظهر والإعدادات"),("categories","التصنيفات"),("backup","نسخة احتياطية استعادة تصدير PDF CSV"),("analytics","التحليلات"),("plan","خطة الشهر والتقويم"),("templates","القوالب السريعة")] where match(title) { out.append(SearchHit(id:id,kind:"action",title:title,detail:"فتح الشاشة")) }
+        out+=h.accounts.filter{match($0.name+" "+$0.kind)}.prefix(20).map { SearchHit(id:$0.id,kind:"account",title:$0.name,detail:$0.archived ? "مؤرشف":"حساب أو محفظة") }
+        out+=h.categories.filter{match($0.name)}.prefix(20).map { SearchHit(id:$0.id,kind:"category",title:$0.name,detail:$0.income ? "دخل":"مصروف") }
+        out+=h.dues.filter{match("\($0.title) \(h.category($0.categoryId)) \($0.date) \(Finance.input($0.amount))")}.sorted{$0.date<$1.date}.prefix(30).map { SearchHit(id:$0.id,kind:"due",title:$0.title,detail:$0.date+" • "+Finance.format($0.amount)) }
+        out+=h.transactions.filter{match("\($0.note) \(h.category($0.categoryId)) \(h.account($0.accountId)) \(h.account($0.destinationId)) \($0.date) \(Finance.input($0.amount)) \($0.type.title)")}.sorted{($0.date,$0.created)>($1.date,$1.created)}.prefix(50).map { SearchHit(id:$0.id,kind:"transaction",title:$0.note.isEmpty ? h.category($0.categoryId):$0.note,detail:$0.date+" • "+Finance.format($0.amount)+" • "+$0.type.title) }; return out
+    }
+}
+enum Reports {
+    static func cell(_ value: String) -> String { let trimmed=value.trimmingCharacters(in:.whitespaces); let safe=["=","+","-","@","\t","\r"].contains(where:{trimmed.hasPrefix($0)}) ? "'"+value:value; return "\""+safe.replacingOccurrences(of:"\"",with:"\"\"")+"\"" }
+    static func csv(_ h: Household, _ p: Cycle) -> Data { var rows=[["المعرف","التاريخ","النوع","المبلغ بالجنيه","الحساب","الحساب المستلم","التصنيف","طريقة الدفع","الملاحظة","الاستحقاق","العملية الأصلية"]]; for t in h.transactions.filter({p.contains($0.date)}).sorted(by:{$0.date<$1.date}) { rows.append([t.id,t.date,t.type.title,Finance.input(t.amount),h.account(t.accountId),h.account(t.destinationId),h.category(t.categoryId),t.payment,t.note,t.dueId ?? "",t.originalId ?? ""]) }; return Data(("\u{FEFF}"+rows.map{$0.map(cell).joined(separator:",")}.joined(separator:"\r\n")).utf8) }
+    static func lines(_ h: Household, _ p: Cycle) -> [String] { let income=Finance.income(h.transactions,p); let expense=Finance.expense(h.transactions,p); return ["Mew — تقرير فعلي",p.start+" إلى "+Dates.add(p.end,days:-1),"يعكس السجلات المدخلة فقط؛ لا يثبت اكتمال التسجيل","الدخل: "+Finance.format(income),"صافي المصروفات: "+Finance.format(expense),"الفائض: "+Finance.format(income-expense),"التحويلات والأرصدة الافتتاحية مستبعدة من الدخل والمصروف"]+Finance.categories(h.transactions,p).sorted{$0.value>$1.value}.map{h.category($0.key)+": "+Finance.format($0.value)}+h.transactions.filter{p.contains($0.date)}.sorted{$0.date<$1.date}.map{$0.date+" | "+$0.type.title+" | "+Finance.format($0.amount)+" | "+h.category($0.categoryId)+" | "+h.account($0.accountId)} }
+}
