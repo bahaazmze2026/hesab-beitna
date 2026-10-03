@@ -104,7 +104,7 @@ private val HouseTypography=Typography(
 @Composable fun AmountLine(label:String,amount:Long,color:Color=MaterialTheme.colorScheme.primary) {
     Column(verticalArrangement=Arrangement.spacedBy(4.dp)){Hint(label);Text(money(amount),style=MaterialTheme.typography.headlineMedium,color=color)}
 }
-@Composable fun Mascot(size:Dp=88.dp){Image(painterResource(R.drawable.brand_cat),"قطة Meow Budget تحتضن محفظة الادخار",Modifier.size(size).clip(Brand.Card))}
+@Composable fun Mascot(size:Dp=88.dp){Image(painterResource(R.drawable.brand_cat),"قطة Meow Budget تحمل نقود الادخار",Modifier.size(size))}
 @Composable fun Empty(text:String="لا توجد عمليات مسجلة في هذه الفترة") {
     Panel{Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(12.dp)) {
         Mascot(72.dp);Text(text,style=MaterialTheme.typography.titleMedium);Hint("ابدأ ببياناتك الحقيقية، أو غيّر الفترة والتصفية")

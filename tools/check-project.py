@@ -13,8 +13,9 @@ assert application.attrib[android+'supportsRtl'] == 'true'
 assert application.attrib[android+'label'] == 'Meow Budget'
 for path in (root/'app/src').rglob('*.xml'):
     ET.parse(path)
-for resource in ['notification_logo']:
-    assert (root/f'app/src/main/res/drawable/{resource}.xml').is_file()
+for density in ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']:
+    assert (root/f'app/src/main/res/drawable-{density}/notification_logo.png').is_file()
+assert (root/'app/src/main/res/drawable-nodpi/brand_cat.png').read_bytes() == (root/'tools/icon-source/Mew-Icon-Isolated.png').read_bytes()
 required = ['Models.kt','Finance.java','BackupCrypto.java','Storage.kt','AppModel.kt',
             'MainActivity.kt','HouseApp.kt','Ui.kt','Forms.kt','Screens.kt','Reports.kt','DuePlanForm.kt']
 for name in required:

@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.provider.MediaStore
 import android.provider.Settings
@@ -40,6 +41,9 @@ class LauncherIconTest {
     }
     @Test fun installedAdaptiveIconLauncherAndSettings() {
         assumeTrue(InstrumentationRegistry.getArguments().getString("iconStage") == "verify")
+        val mascot = (context.getDrawable(R.drawable.brand_cat) as BitmapDrawable).bitmap
+        assertEquals("In-app character must use the supplied full-resolution image", 1254, mascot.width)
+        assertEquals(1254, mascot.height)
         val icon = context.packageManager.getApplicationIcon(context.packageName)
         assertTrue("Installed application must resolve to an adaptive icon", icon is AdaptiveIconDrawable)
         val foreground = (icon as AdaptiveIconDrawable).foreground
