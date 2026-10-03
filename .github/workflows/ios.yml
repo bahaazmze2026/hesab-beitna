@@ -1,0 +1,35 @@
+name: Mew iOS build and acceptance
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ["ios/**", ".github/workflows/ios.yml"]
+  push:
+    branches: [main]
+    paths: ["ios/**", ".github/workflows/ios.yml"]
+permissions:
+  contents: read
+jobs:
+  core:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Swift compiler and Android golden parity
+        env:
+          MEW_INTEROP_OUTPUT: ${{ github.workspace }}/ios/build/swift-backup.hbb
+        run: |
+          mkdir -p ios/build/java
+          javac -encoding UTF-8 -d ios/build/java app/src/main/java/com/hesabbeitna/app/Finance.java app/src/main/java/com/hesabbeitna/app/BackupCrypto.java ios/scripts/AndroidInterop.java
+          java -cp ios/build/java AndroidInterop seed ios/Tests/Fixtures/android.json ios/Tests/Fixtures/android-backup.hbb ios/Tests/Fixtures/finance-vectors.json
+          cd ios
+          swift test 2>&1 | tee build/core-tests.log
+          java -cp build/java AndroidInterop verify build/swift-backup.hbb | tee build/interop-result.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mew-ios-core-reports
+          path: ios/build
