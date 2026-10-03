@@ -71,7 +71,9 @@ class LauncherIconTest {
         // UiDevice pointer delivery as a wallpaper long-press/context menu.
         var opened = false
         for (attempt in 1..3) {
-            device.executeShellCommand("input swipe ${device.displayWidth / 2} ${device.displayHeight * 75 / 100} ${device.displayWidth / 2} ${device.displayHeight * 25 / 100} 150")
+            device.executeShellCommand("input swipe ${device.displayWidth / 2} ${device.displayHeight * 85 / 100} ${device.displayWidth / 2} ${device.displayHeight * 25 / 100} 150")
+            screenshot("drawer-gesture-$attempt")
+            device.dumpWindowHierarchy(File(context.getExternalFilesDir(null), "drawer-$attempt.xml"))
             if (device.wait(Until.hasObject(By.text("All apps")), 5_000)) { opened = true; break }
             device.pressBack(); device.waitForIdle(3_000)
         }

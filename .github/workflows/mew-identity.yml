@@ -48,6 +48,7 @@ jobs:
             adb shell am instrument -w -e class com.hesabbeitna.app.LauncherIconTest -e iconStage verify com.hesabbeitna.app.preview.test/androidx.test.runner.AndroidJUnitRunner > qa/icon-runtime.txt
             cat qa/icon-runtime.txt
             adb pull /sdcard/Pictures/HesabBeitnaQA/ qa/screenshots/ || true
+            adb pull /sdcard/Android/data/com.hesabbeitna.app.preview/files/ qa/diagnostics/ || true
             grep -F 'OK (1 test)' qa/icon-runtime.txt
       - uses: actions/upload-artifact@v4
         if: always()
